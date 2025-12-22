@@ -141,6 +141,10 @@ export default function Index() {
     );
   }
 
+  const activeCount = workflows?.filter(w => w.active).length || 0;
+  const inactiveCount = workflows?.filter(w => !w.active).length || 0;
+  const totalCount = workflows?.length || 0;
+
   const renderWorkflow = ({ item }: { item: N8nWorkflow }) => {
     const lastUpdate = formatDistanceToNow(new Date(item.updatedAt), {
       addSuffix: true,
@@ -149,27 +153,41 @@ export default function Index() {
 
     return (
       <TouchableOpacity
-        style={styles.workflowRow}
+        style={styles.workflowCard}
         onPress={() => router.push(`/workflow/${item.id}`)}
-        activeOpacity={0.6}
+        activeOpacity={0.7}
       >
-        <View style={styles.iconContainer}>
+        <View style={styles.cardHeader}>
+            <View style={[styles.iconContainer, item.active ? styles.iconActive : styles.iconInactive]}>
+                <Ionicons 
+                    name="git-network-outline" 
+                    size={24} 
+                    color={item.active ? THEME.textPrimary : THEME.textSecondary} 
+                />
+            </View>
+            <View style={styles.cardInfo}>
+                <Text style={styles.workflowName} numberOfLines={1}>{item.name}</Text>
+                <View style={styles.metaBadgeRow}>
+                    <View style={[styles.statusBadge, item.active ? styles.badgeActive : styles.badgeInactive]}>
+                        <Text style={[styles.badgeText, item.active ? { color: THEME.success } : { color: THEME.textSecondary }]}>
+                            {item.active ? 'ACTIVO' : 'INACTIVO'}
+                        </Text>
+                    </View>
+                    <Text style={styles.workflowMeta}>{lastUpdate}</Text>
+                </View>
+            </View>
             <Ionicons 
-                name={item.active ? "play-circle" : "pause-circle"} 
-                size={42} 
-                color={item.active ? THEME.success : THEME.textSecondary} 
+                name={item.active ? "play-circle" : "pause-circle"} // Status indicator
+                size={32} 
+                color={item.active ? THEME.success : THEME.surfaceHighlight} 
             />
         </View>
-        <View style={styles.infoContainer}>
-          <Text style={[styles.workflowName, !item.active && styles.workflowNameInactive]} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <View style={styles.metaRow}>
-             {item.active && (
-                <View style={styles.activeDot} />
-             )}
-            <Text style={styles.workflowMeta}>{item.active ? 'Activo • ' : ''}Actualizado {lastUpdate}</Text>
-          </View>
+        
+        {/* Visual Flow Line (Decoration) */}
+        <View style={styles.flowLineContainer}>
+             <View style={[styles.flowDot, item.active ? { backgroundColor: THEME.success } : { backgroundColor: THEME.surfaceHighlight }]} />
+             <View style={styles.flowLine} />
+             <View style={styles.flowDotEnd} />
         </View>
       </TouchableOpacity>
     );
@@ -186,7 +204,26 @@ export default function Index() {
       />
       
       <View style={styles.header}>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
+        <View>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.subtitle}>Resumen de flujos</Text>
+        </View>
+      </View>
+
+      {/* Stats Dashboard */}
+      <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{totalCount}</Text>
+              <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statCard}>
+              <Text style={[styles.statNumber, { color: THEME.success }]}>{activeCount}</Text>
+              <Text style={styles.statLabel}>Activos</Text>
+          </View>
+          <View style={styles.statCard}>
+              <Text style={[styles.statNumber, { color: THEME.textSecondary }]}>{inactiveCount}</Text>
+              <Text style={styles.statLabel}>Inactivos</Text>
+          </View>
       </View>
 
       {/* Search Bar */}
@@ -294,6 +331,16 @@ export default function Index() {
 
              <TouchableOpacity 
                 style={styles.menuItem}
+                onPress={() => router.push({ pathname: '/setup', params: { action: 'add' } })}
+                activeOpacity={0.7}
+             >
+                 <View style={styles.menuIconContainer}>
+                    <Ionicons name="add-circle-outline" size={22} color="#FFF" />
+                 </View>
+             </TouchableOpacity>
+
+             <TouchableOpacity 
+                style={styles.menuItem}
                 onPress={() => router.push('/setup')}
                 activeOpacity={0.7}
              >
@@ -339,6 +386,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: THEME.textPrimary,
     letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: THEME.textSecondary,
+    marginTop: 4,
   },
   headerIcons: {
     flexDirection: 'row',
@@ -407,47 +459,129 @@ const styles = StyleSheet.create({
       fontSize: 13,
       fontWeight: '600',
   },
-  listContent: {
-    paddingBottom: 120, // Space for floating menu
-    paddingTop: 8,
+  // Stats Styles
+  statsRow: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      gap: 12,
+      marginBottom: 24,
   },
-  workflowRow: {
+  statCard: {
+      flex: 1,
+      backgroundColor: THEME.surface,
+      borderRadius: 16,
+      padding: 16,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.05)',
+  },
+  statNumber: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: THEME.textPrimary,
+      marginBottom: 4,
+  },
+  statLabel: {
+      fontSize: 12,
+      color: THEME.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+  },
+
+  // List Styles
+  listContent: {
+    paddingBottom: 120,
+    paddingTop: 8,
+    paddingHorizontal: 16, // Added horizontal padding for cards
+  },
+  workflowCard: {
+    backgroundColor: THEME.surface,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   iconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
       marginRight: 12,
   },
-  infoContainer: {
-    flex: 1,
-    paddingRight: 10,
+  iconActive: {
+      backgroundColor: 'rgba(34, 197, 94, 0.1)', // Green tint
+  },
+  iconInactive: {
+      backgroundColor: THEME.surfaceHighlight,
+  },
+  cardInfo: {
+      flex: 1,
   },
   workflowName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: THEME.textPrimary,
-    marginBottom: 4,
-    letterSpacing: -0.3,
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: THEME.textPrimary,
+      marginBottom: 6,
   },
-  workflowNameInactive: {
+  metaBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+  },
+  statusBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      borderWidth: 1,
+  },
+  badgeActive: {
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      borderColor: 'rgba(34, 197, 94, 0.3)',
+  },
+  badgeInactive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  badgeText: {
+      fontSize: 10,
+      fontWeight: 'bold',
+  },
+  workflowMeta: {
+      fontSize: 12,
       color: THEME.textSecondary,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  // Flow Decoration
+  flowLineContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingLeft: 20, // Align with icon center roughly
+      opacity: 0.5,
   },
-  activeDot: {
+  flowDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      marginRight: 4,
+  },
+  flowLine: {
+      flex: 1,
+      height: 2,
+      backgroundColor: THEME.surfaceHighlight,
+      borderRadius: 1,
+      marginRight: 4,
+  },
+  flowDotEnd: {
       width: 4,
       height: 4,
       borderRadius: 2,
-      backgroundColor: THEME.success, // Match play button
-      marginRight: 4,
-  },
-  workflowMeta: {
-    fontSize: 13,
-    color: THEME.textSecondary,
+      backgroundColor: THEME.surfaceHighlight,
   },
   loadingText: {
     marginTop: 16,

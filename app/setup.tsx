@@ -7,7 +7,7 @@ import {
 } from '@/services/storage';
 import { N8nServer } from '@/types/n8n';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -38,7 +38,11 @@ const THEME = {
 
 export default function SetupScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ action?: string }>();
   
+  // UI Mode
+  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -56,7 +60,16 @@ export default function SetupScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (params.action === 'add') {
+        // We can't call handleAddNew directly here because it might depend on other state/functions not yet declared if using closures, 
+        // but function hoisting usually works. However, to be safe and clean:
+        setEditingId(null);
+        setName('');
+        setServerUrl('');
+        setApiKey('');
+        setViewMode('form');
+    }
+  }, [params.action]);
 
   const loadData = async () => {
     try {
@@ -66,6 +79,9 @@ export default function SetupScreen() {
       
       setServers(serverList);
       setActiveId(currentActive || (serverList.length > 0 ? serverList[0].id : null));
+      
+      // If no servers, go to form automatically? Optional, but let's stick to list for consistency
+      // unless completely empty and first run?
     } catch (error) {
       console.error('Error loading config:', error);
     } finally {
@@ -73,11 +89,17 @@ export default function SetupScreen() {
     }
   };
 
-  const handleSelectServer = (server: N8nServer) => {
+  const handleAddNew = () => {
+      resetForm();
+      setViewMode('form');
+  };
+
+  const handleEdit = (server: N8nServer) => {
       setEditingId(server.id);
       setName(server.name);
       setServerUrl(server.serverUrl);
       setApiKey(server.apiKey);
+      setViewMode('form');
   };
 
   const handleActivate = async (id: string) => {
@@ -97,7 +119,10 @@ export default function SetupScreen() {
                   style: 'destructive',
                   onPress: async () => {
                       await removeServer(id);
-                      if (editingId === id) resetForm();
+                      if (editingId === id) {
+                          resetForm();
+                          setViewMode('list');
+                      }
                       loadData();
                   }
               }
@@ -110,6 +135,11 @@ export default function SetupScreen() {
       setName('');
       setServerUrl('');
       setApiKey('');
+  };
+
+  const goBackToList = () => {
+      resetForm();
+      setViewMode('list');
   };
 
   const testConnection = async () => {
@@ -210,6 +240,7 @@ export default function SetupScreen() {
 
       await loadData();
       resetForm();
+      setViewMode('list'); // Go back to list after saving
       Alert.alert('Guardado', 'Servidor guardado correctamente.');
     } catch {
       Alert.alert('Error', 'No se pudo guardar la configuración');
@@ -229,39 +260,42 @@ export default function SetupScreen() {
 
   const renderServerItem = ({ item }: { item: N8nServer }) => {
       const isActive = item.id === activeId;
-      const isEditing = item.id === editingId;
-
+      
       return (
           <TouchableOpacity 
-            style={[styles.serverCard, isEditing && styles.serverCardEditing]}
-            onPress={() => handleSelectServer(item)}
+            style={[styles.serverCard, isActive && styles.serverCardActive]}
+            onPress={() => handleEdit(item)}
             activeOpacity={0.7}
           >
-              <View style={styles.serverInfo}>
-                  <Text style={styles.serverName}>{item.name}</Text>
-                  <Text style={styles.serverUrl} numberOfLines={1}>{item.serverUrl}</Text>
+              <View style={styles.serverCardContent}>
+                <View style={styles.serverInfo}>
+                    <Text style={styles.serverName}>{item.name}</Text>
+                    <Text style={styles.serverUrl} numberOfLines={1}>{item.serverUrl}</Text>
+                </View>
+
+                {isActive && (
+                    <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>ACTIVO</Text>
+                    </View>
+                )}
               </View>
               
               <View style={styles.serverActions}>
-                  {isActive ? (
-                      <View style={styles.activeBadge}>
-                          <Text style={styles.activeBadgeText}>ACTIVO</Text>
-                      </View>
-                  ) : (
+                 {!isActive && (
                       <TouchableOpacity 
                         style={styles.activateButton}
                         onPress={() => handleActivate(item.id)}
                       >
-                          <Text style={styles.activateButtonText}>Activar</Text>
+                          <Text style={styles.activateButtonText}>Usar</Text>
                       </TouchableOpacity>
                   )}
-                  
                   <TouchableOpacity 
                     style={styles.deleteButton}
                     onPress={() => handleDelete(item.id)}
                   >
                       <Ionicons name="trash-outline" size={20} color={THEME.textSecondary} />
                   </TouchableOpacity>
+                  <Ionicons name="chevron-forward" size={20} color={THEME.textSecondary} />
               </View>
           </TouchableOpacity>
       );
@@ -274,11 +308,25 @@ export default function SetupScreen() {
     >
       <StatusBar barStyle="light-content" />
       
+      {/* HEADER */}
       <View style={styles.headerRow}>
+        {viewMode === 'form' ? (
+             <TouchableOpacity style={styles.closeButton} onPress={goBackToList}>
+                <Ionicons name="arrow-back" size={24} color={THEME.textPrimary} />
+            </TouchableOpacity>
+        ) : (
+            <View /> // Spacer if no back button
+        )}
+
         <View style={styles.headerTextContainer}>
-            <Text style={styles.title}>Servidores</Text>
-            <Text style={styles.subtitle}>Gestiona tus conexiones n8n</Text>
+            <Text style={styles.title}>
+                {viewMode === 'list' ? 'Servidores' : (editingId ? 'Editar Servidor' : 'Nuevo Servidor')}
+            </Text>
+            {viewMode === 'list' && (
+                <Text style={styles.subtitle}>Gestiona tus conexiones n8n</Text>
+            )}
         </View>
+        
         <TouchableOpacity
             style={styles.closeButton}
             onPress={() => router.back()}
@@ -287,114 +335,117 @@ export default function SetupScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.listContainer}>
-        <FlatList
-            data={servers}
-            renderItem={renderServerItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.listContent}
-            ListEmptyComponent={
-                <Text style={styles.emptyText}>No hay servidores configurados.</Text>
-            }
-        />
-      </View>
+      {/* CONTENT */}
+      {viewMode === 'list' ? (
+          <View style={styles.listContainer}>
+            <FlatList
+                data={servers}
+                renderItem={renderServerItem}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                    <View style={{ padding: 40, alignItems: 'center' }}>
+                        <Ionicons name="server-outline" size={64} color={THEME.surfaceHighlight} />
+                        <Text style={styles.emptyText}>No hay servidores configurados.</Text>
+                        <Text style={[styles.emptyText, { fontSize: 13, marginTop: 8 }]}>Agrega uno para comenzar.</Text>
+                    </View>
+                }
+                ListFooterComponent={
+                     <TouchableOpacity 
+                        style={styles.introButton}
+                        onPress={async () => {
+                            const { resetOnboarding } = require('@/services/storage');
+                            await resetOnboarding();
+                            router.replace('/onboarding');
+                        }}
+                    >
+                        <Text style={styles.introButtonText}>Ver Intro de Nuevo</Text>
+                    </TouchableOpacity>
+                }
+            />
+            {/* FAB */}
+            <TouchableOpacity 
+                style={styles.fab}
+                onPress={handleAddNew}
+            >
+                <Ionicons name="add" size={32} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+      ) : (
+          <ScrollView
+            style={styles.formContainer}
+            contentContainerStyle={styles.formContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>Nombre</Text>
+                <TextInput
+                style={styles.input}
+                placeholder="Mi Servidor n8n"
+                placeholderTextColor={THEME.textSecondary}
+                value={name}
+                onChangeText={setName}
+                editable={!loading}
+                />
+            </View>
 
-      <ScrollView
-        style={styles.formContainer}
-        contentContainerStyle={styles.formContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>
-                {editingId ? 'Editar Servidor' : 'Agregar Nuevo Servidor'}
-            </Text>
-            {editingId && (
-                <TouchableOpacity onPress={resetForm}>
-                    <Text style={styles.resetText}>Cancelar Edición</Text>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>URL del Servidor</Text>
+                <TextInput
+                style={styles.input}
+                placeholder="https://n8n.example.com"
+                placeholderTextColor={THEME.textSecondary}
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                editable={!loading}
+                />
+            </View>
+
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>API Key</Text>
+                <TextInput
+                style={styles.input}
+                placeholder="n8n_api_xxxxxxxxxxxxx"
+                placeholderTextColor={THEME.textSecondary}
+                value={apiKey}
+                onChangeText={setApiKey}
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+                editable={!loading}
+                />
+            </View>
+
+            <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                style={[styles.testButton, testing && styles.buttonDisabled]}
+                onPress={testConnection}
+                disabled={testing || loading}
+                >
+                {testing ? (
+                    <ActivityIndicator color={THEME.accent} />
+                ) : (
+                    <Text style={styles.testButtonText}>Probar Conexión</Text>
+                )}
                 </TouchableOpacity>
-            )}
-        </View>
 
-        <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre</Text>
-            <TextInput
-            style={styles.input}
-            placeholder="Mi Servidor n8n"
-            placeholderTextColor={THEME.textSecondary}
-            value={name}
-            onChangeText={setName}
-            editable={!loading}
-            />
-        </View>
-
-        <View style={styles.inputContainer}>
-            <Text style={styles.label}>URL del Servidor</Text>
-            <TextInput
-            style={styles.input}
-            placeholder="https://n8n.example.com"
-            placeholderTextColor={THEME.textSecondary}
-            value={serverUrl}
-            onChangeText={setServerUrl}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            editable={!loading}
-            />
-        </View>
-
-        <View style={styles.inputContainer}>
-            <Text style={styles.label}>API Key</Text>
-            <TextInput
-            style={styles.input}
-            placeholder="n8n_api_xxxxxxxxxxxxx"
-            placeholderTextColor={THEME.textSecondary}
-            value={apiKey}
-            onChangeText={setApiKey}
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            editable={!loading}
-            />
-        </View>
-
-        <View style={styles.actionsContainer}>
-            <TouchableOpacity
-            style={[styles.testButton, testing && styles.buttonDisabled]}
-            onPress={testConnection}
-            disabled={testing || loading}
-            >
-            {testing ? (
-                <ActivityIndicator color={THEME.accent} />
-            ) : (
-                <Text style={styles.testButtonText}>Probar Conexión</Text>
-            )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSave}
-            disabled={loading || testing}
-            >
-            {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-            ) : (
-                <Text style={styles.buttonText}>{editingId ? 'Actualizar' : 'Guardar'}</Text>
-            )}
-            </TouchableOpacity>
-        </View>
-
-        {/* Debug/Reset Onboarding */}
-        <TouchableOpacity 
-            style={styles.introButton}
-            onPress={async () => {
-                const { resetOnboarding } = require('@/services/storage');
-                await resetOnboarding();
-                router.replace('/onboarding');
-            }}
-        >
-            <Text style={styles.introButtonText}>Ver Intro de Nuevo</Text>
-        </TouchableOpacity>
-      </ScrollView>
+                <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSave}
+                disabled={loading || testing}
+                >
+                {loading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                    <Text style={styles.buttonText}>{editingId ? 'Actualizar' : 'Guardar'}</Text>
+                )}
+                </TouchableOpacity>
+            </View>
+          </ScrollView>
+      )}
 
     </KeyboardAvoidingView>
   );
@@ -411,10 +462,10 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
+    alignItems: 'center', // Centered vertically
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     paddingTop: 60,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 20,
     backgroundColor: THEME.background,
     borderBottomWidth: 1,
@@ -422,50 +473,60 @@ const styles = StyleSheet.create({
   },
   headerTextContainer: {
     flex: 1,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     color: THEME.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: THEME.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
   },
   closeButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: THEME.surfaceHighlight,
     borderRadius: 20,
   },
   listContainer: {
-      maxHeight: 220, // Limit height of server list
-      borderBottomWidth: 1,
-      borderBottomColor: THEME.surfaceHighlight,
+      flex: 1,
   },
   listContent: {
       padding: 16,
+      paddingBottom: 100, // Space for FAB
   },
   emptyText: {
       color: THEME.textSecondary,
       textAlign: 'center',
       marginTop: 20,
       fontStyle: 'italic',
+      fontSize: 16,
   },
   serverCard: {
       backgroundColor: THEME.surface,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 16,
       marginBottom: 12,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       borderWidth: 1,
-      borderColor: 'transparent',
+      borderColor: 'rgba(255,255,255,0.05)',
+  },
+  serverCardActive: {
+      borderColor: THEME.success,
+      backgroundColor: 'rgba(34, 197, 94, 0.05)',
   },
   serverCardEditing: {
-      borderColor: THEME.accent,
-      backgroundColor: 'rgba(234, 75, 113, 0.1)',
+      // No longer needed as we switch views
+  },
+  serverCardContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
   },
   serverInfo: {
       flex: 1,
@@ -474,22 +535,27 @@ const styles = StyleSheet.create({
       color: THEME.textPrimary,
       fontWeight: 'bold',
       fontSize: 16,
+      marginBottom: 4,
   },
   serverUrl: {
       color: THEME.textSecondary,
       fontSize: 12,
-      marginTop: 2,
   },
   serverActions: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'flex-end',
       gap: 12,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.05)',
+      paddingTop: 12,
   },
   activeBadge: {
       backgroundColor: 'rgba(34, 197, 94, 0.2)',
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 4,
+      marginLeft: 8,
   },
   activeBadgeText: {
       color: THEME.success,
@@ -497,10 +563,10 @@ const styles = StyleSheet.create({
       fontWeight: 'bold',
   },
   activateButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
       backgroundColor: THEME.surfaceHighlight,
-      borderRadius: 12,
+      borderRadius: 20,
   },
   activateButtonText: {
       color: THEME.textPrimary,
@@ -510,28 +576,31 @@ const styles = StyleSheet.create({
   deleteButton: {
       padding: 8,
   },
+  fab: {
+      position: 'absolute',
+      bottom: 40,
+      right: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: THEME.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: "#000",
+      shadowOffset: {
+          width: 0,
+          height: 4,
+      },
+      shadowOpacity: 0.30,
+      shadowRadius: 4.65,
+      elevation: 8,
+  },
   formContainer: {
       flex: 1,
   },
   formContent: {
       padding: 24,
       paddingBottom: 40,
-  },
-  formHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 24,
-  },
-  formTitle: {
-      color: THEME.accent,
-      fontSize: 18,
-      fontWeight: 'bold',
-  },
-  resetText: {
-      color: THEME.textSecondary,
-      fontSize: 14,
-      textDecorationLine: 'underline',
   },
   inputContainer: {
       marginBottom: 16,
