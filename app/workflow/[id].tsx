@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, subDays, subHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,6 +43,7 @@ export default function WorkflowDetail() {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error' | 'running'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
   const ITEMS_PER_PAGE = 10;
 
   const {
@@ -67,10 +68,29 @@ export default function WorkflowDetail() {
     enabled: !!id,
   });
 
-  // Filter executions based on status
+  // Filter executions based on status and time
   const filteredExecutions = executions?.filter(e => {
-    if (statusFilter === 'all') return true;
-    return e.status === statusFilter;
+    // Status filter
+    if (statusFilter !== 'all' && e.status !== statusFilter) {
+      return false;
+    }
+    
+    // Time filter
+    if (timeFilter !== 'all') {
+      const executionDate = new Date(e.stoppedAt || e.startedAt);
+      const now = new Date();
+      
+      switch (timeFilter) {
+        case '24h':
+          return executionDate >= subHours(now, 24);
+        case '7d':
+          return executionDate >= subDays(now, 7);
+        case '30d':
+          return executionDate >= subDays(now, 30);
+      }
+    }
+    
+    return true;
   }) || [];
 
   const successCount = executions?.filter(e => e.status === 'success').length || 0;
@@ -284,71 +304,128 @@ export default function WorkflowDetail() {
         <View style={styles.executionsSection}>
           <Text style={styles.sectionTitle}>Historial de Ejecuciones</Text>
           
-          {/* Filter Chips */}
-          <View style={styles.filterContainer}>
-            <TouchableOpacity 
-              style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
-              onPress={() => {
-                setStatusFilter('all');
-                setCurrentPage(1);
-              }}
-            >
-              <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
-                Todos ({executions?.length || 0})
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.filterChip, statusFilter === 'success' && styles.filterChipActive]}
-              onPress={() => {
-                setStatusFilter('success');
-                setCurrentPage(1);
-              }}
-            >
-              <Ionicons name="checkmark-circle" size={16} color={statusFilter === 'success' ? '#000' : THEME.success} />
-              <Text style={[styles.filterChipText, statusFilter === 'success' && styles.filterChipTextActive]}>
-                Exitosas ({successCount})
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.filterChip, statusFilter === 'error' && styles.filterChipActive]}
-              onPress={() => {
-                setStatusFilter('error');
-                setCurrentPage(1);
-              }}
-            >
-              <Ionicons name="close-circle" size={16} color={statusFilter === 'error' ? '#000' : THEME.error} />
-              <Text style={[styles.filterChipText, statusFilter === 'error' && styles.filterChipTextActive]}>
-                Errores ({errorCount})
-              </Text>
-            </TouchableOpacity>
-            
-            {runningCount > 0 && (
-              <TouchableOpacity 
-                style={[styles.filterChip, statusFilter === 'running' && styles.filterChipActive]}
-                onPress={() => {
-                  setStatusFilter('running');
-                  setCurrentPage(1);
-                }}
-              >
-                <Ionicons name="time-outline" size={16} color={statusFilter === 'running' ? '#000' : THEME.textSecondary} />
-                <Text style={[styles.filterChipText, statusFilter === 'running' && styles.filterChipTextActive]}>
-                  En curso ({runningCount})
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
           {executionsLoading ? (
             <ActivityIndicator size="small" color={THEME.accent} style={{ marginTop: 20 }} />
-          ) : filteredExecutions.length > 0 ? (
+          ) : executions && executions.length > 0 ? (
             <>
-              <View style={styles.executionsList}>
-                {filteredExecutions
-                  .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-                  .map(renderExecution)}
+              {/* Status Filter Chips */}
+              <View style={styles.filterContainer}>
+                <TouchableOpacity 
+                  style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
+                  onPress={() => {
+                    setStatusFilter('all');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
+                    Todos ({executions?.length || 0})
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterChip, statusFilter === 'success' && styles.filterChipActive]}
+                  onPress={() => {
+                    setStatusFilter('success');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color={statusFilter === 'success' ? '#000' : THEME.success} />
+                  <Text style={[styles.filterChipText, statusFilter === 'success' && styles.filterChipTextActive]}>
+                    Exitosas ({successCount})
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterChip, statusFilter === 'error' && styles.filterChipActive]}
+                  onPress={() => {
+                    setStatusFilter('error');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="close-circle" size={16} color={statusFilter === 'error' ? '#000' : THEME.error} />
+                  <Text style={[styles.filterChipText, statusFilter === 'error' && styles.filterChipTextActive]}>
+                    Errores ({errorCount})
+                  </Text>
+                </TouchableOpacity>
+                
+                {runningCount > 0 && (
+                  <TouchableOpacity 
+                    style={[styles.filterChip, statusFilter === 'running' && styles.filterChipActive]}
+                    onPress={() => {
+                      setStatusFilter('running');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <Ionicons name="time-outline" size={16} color={statusFilter === 'running' ? '#000' : THEME.textSecondary} />
+                    <Text style={[styles.filterChipText, statusFilter === 'running' && styles.filterChipTextActive]}>
+                      En curso ({runningCount})
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
+              
+              {/* Time Filter Chips */}
+              <View style={styles.filterContainer}>
+                <TouchableOpacity 
+                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === 'all' && styles.filterChipActive]}
+                  onPress={() => {
+                    setTimeFilter('all');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={timeFilter === 'all' ? '#000' : THEME.textSecondary} />
+                  <Text style={[styles.filterChipText, timeFilter === 'all' && styles.filterChipTextActive]}>
+                    Todo
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '24h' && styles.filterChipActive]}
+                  onPress={() => {
+                    setTimeFilter('24h');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="time-outline" size={16} color={timeFilter === '24h' ? '#000' : THEME.textSecondary} />
+                  <Text style={[styles.filterChipText, timeFilter === '24h' && styles.filterChipTextActive]}>
+                    24h
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '7d' && styles.filterChipActive]}
+                  onPress={() => {
+                    setTimeFilter('7d');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={timeFilter === '7d' ? '#000' : THEME.textSecondary} />
+                  <Text style={[styles.filterChipText, timeFilter === '7d' && styles.filterChipTextActive]}>
+                    7 días
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '30d' && styles.filterChipActive]}
+                  onPress={() => {
+                    setTimeFilter('30d');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <Ionicons name="calendar-outline" size={16} color={timeFilter === '30d' ? '#000' : THEME.textSecondary} />
+                  <Text style={[styles.filterChipText, timeFilter === '30d' && styles.filterChipTextActive]}>
+                    30 días
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {filteredExecutions.length > 0 ? (
+                <>
+                  <View style={styles.executionsList}>
+                    {filteredExecutions
+                      .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                      .map(renderExecution)}
+                  </View>
               
               {/* Pagination Controls */}
               {filteredExecutions.length > ITEMS_PER_PAGE && (
@@ -378,11 +455,17 @@ export default function WorkflowDetail() {
                   </TouchableOpacity>
                 </View>
               )}
+                </>
+              ) : (
+                <Text style={styles.emptyText}>
+                  {statusFilter === 'all' && timeFilter === 'all' 
+                    ? 'No hay ejecuciones recientes.' 
+                    : 'No hay ejecuciones que coincidan con los filtros seleccionados.'}
+                </Text>
+              )}
             </>
           ) : (
-            <Text style={styles.emptyText}>
-              {statusFilter === 'all' ? 'No hay ejecuciones recientes.' : `No hay ejecuciones con estado "${statusFilter}".`}
-            </Text>
+            <Text style={styles.emptyText}>No hay ejecuciones recientes.</Text>
           )}
         </View>
       </ScrollView>
@@ -676,5 +759,9 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#000',
+  },
+  timeFilterChip: {
+    backgroundColor: 'rgba(100, 150, 255, 0.1)',
+    borderColor: 'rgba(100, 150, 255, 0.2)',
   },
 });
