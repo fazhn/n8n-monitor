@@ -4,8 +4,15 @@
  */
 
 export interface N8nConfig {
+  id?: string;
+  name?: string;
   serverUrl: string;
   apiKey: string;
+}
+
+export interface N8nServer extends N8nConfig {
+  id: string;
+  name: string;
 }
 
 export interface N8nWorkflow {
@@ -34,6 +41,16 @@ export interface N8nExecution {
   data?: {
     resultData: {
       runData: Record<string, any>;
+      error?: {
+        message: string;
+        stack?: string;
+        name?: string;
+        node?: {
+          name: string;
+          type: string;
+        };
+      };
+      lastNodeExecuted?: string;
     };
   };
   status?: 'success' | 'error' | 'waiting' | 'running';

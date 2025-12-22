@@ -1,48 +1,308 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { hasN8nConfig } from '@/services/storage';
+import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { getWorkflows } from '@/services/n8n-api';
+import { hasN8nConfig, isOnboardingCompleted } from '@/services/storage';
+import { N8nWorkflow } from '@/types/n8n';
+
+// Spotify-inspired Theme Constants
+const THEME = {
+  background: '#121212',
+  surface: '#181818',
+  surfaceHighlight: '#282828',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#B3B3B3',
+  accent: '#EA4B71', // n8n Primary
+  success: '#22c55e', // Green
+  error: '#FF5252',
+};
 
 export default function Index() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    data: workflows,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: ['workflows'],
+    queryFn: getWorkflows,
+    enabled: !checking,
+  });
+
   useEffect(() => {
     checkConfig();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!checking) {
+        refetch();
+      }
+    }, [checking, refetch])
+  );
+
   const checkConfig = async () => {
     try {
-      const configExists = await hasN8nConfig();
+      // 1. Check Onboarding
+      const onboardingDone = await isOnboardingCompleted();
+      if (!onboardingDone) {
+        router.replace('/onboarding');
+        return;
+      }
 
+      // 2. Check Config
+      const configExists = await hasN8nConfig();
       if (!configExists) {
-        // No configuration, redirect to setup
         router.replace('/setup');
       } else {
-        // Configuration exists, show main content
         setChecking(false);
       }
     } catch {
-      // On error, redirect to setup
       router.replace('/setup');
     }
   };
 
-  if (checking) {
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
+  const filteredWorkflows = workflows?.filter((workflow) => {
+    // Filter by Status
+    if (filter === 'active' && !workflow.active) return false;
+    if (filter === 'inactive' && workflow.active) return false;
+
+    // Filter by Search Query
+    if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        return workflow.name.toLowerCase().includes(query);
+    }
+
+    return true;
+  });
+
+  if (checking || isLoading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0a7ea4" />
-        <Text style={styles.loadingText}>Cargando...</Text>
+      <View style={styles.centerContainer}>
+        <StatusBar barStyle="light-content" />
+        <ActivityIndicator size="large" color={THEME.accent} />
+        <Text style={styles.loadingText}>Cargando flujos de trabajo...</Text>
       </View>
     );
   }
 
+  if (isError) {
+    return (
+      <View style={styles.centerContainer}>
+        <StatusBar barStyle="light-content" />
+        <Ionicons name="alert-circle-outline" size={64} color={THEME.error} />
+        <Text style={styles.errorTitle}>Algo salió mal</Text>
+        <Text style={styles.errorText}>
+          {error instanceof Error ? error.message : 'Error de conexión'}
+        </Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
+          <Text style={styles.retryButtonText}>Reintentar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.settingsLink}
+          onPress={() => router.push('/setup')}
+        >
+          <Text style={styles.settingsLinkText}>Revisar configuración</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const renderWorkflow = ({ item }: { item: N8nWorkflow }) => {
+    const lastUpdate = formatDistanceToNow(new Date(item.updatedAt), {
+      addSuffix: true,
+      locale: es,
+    });
+
+    return (
+      <TouchableOpacity
+        style={styles.workflowRow}
+        onPress={() => router.push(`/workflow/${item.id}`)}
+        activeOpacity={0.6}
+      >
+        <View style={styles.iconContainer}>
+            <Ionicons 
+                name={item.active ? "play-circle" : "pause-circle"} 
+                size={42} 
+                color={item.active ? THEME.success : THEME.textSecondary} 
+            />
+        </View>
+        <View style={styles.infoContainer}>
+          <Text style={[styles.workflowName, !item.active && styles.workflowNameInactive]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <View style={styles.metaRow}>
+             {item.active && (
+                <View style={styles.activeDot} />
+             )}
+            <Text style={styles.workflowMeta}>{item.active ? 'Activo • ' : ''}Actualizado {lastUpdate}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>n8n Monitor</Text>
-      <Text style={styles.subtitle}>
-        Tu configuración está lista. Aquí mostraremos tus flujos de n8n.
-      </Text>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['rgba(234, 75, 113, 0.3)', '#121212']}
+        style={styles.gradientHeader}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+      
+      <View style={styles.header}>
+        <Text style={styles.greeting}>{getGreeting()}</Text>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+              <Ionicons name="search" size={20} color={THEME.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar flujos..."
+                  placeholderTextColor={THEME.textSecondary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <Ionicons name="close-circle" size={20} color={THEME.textSecondary} />
+                  </TouchableOpacity>
+              )}
+          </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Mis Flujos</Text>
+      </View>
+
+      <View style={styles.filterContainer}>
+         <Pressable 
+            onPress={() => setFilter('all')}
+            style={filter === 'all' ? styles.filterChipActive : styles.filterChip}
+         >
+             <Text style={filter === 'all' ? styles.filterTextActive : styles.filterText}>Todos</Text>
+         </Pressable>
+         <Pressable 
+            onPress={() => setFilter('active')}
+            style={filter === 'active' ? styles.filterChipActive : styles.filterChip}
+         >
+             <Text style={filter === 'active' ? styles.filterTextActive : styles.filterText}>Activos</Text>
+         </Pressable>
+         <Pressable 
+            onPress={() => setFilter('inactive')}
+            style={filter === 'inactive' ? styles.filterChipActive : styles.filterChip}
+         >
+             <Text style={filter === 'inactive' ? styles.filterTextActive : styles.filterText}>Inactivos</Text>
+         </Pressable>
+      </View>
+
+      <FlatList
+        data={filteredWorkflows}
+        renderItem={renderWorkflow}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled" 
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => refetch()}
+            tintColor={THEME.accent}
+            colors={[THEME.accent]}
+            progressViewOffset={40}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            {searchQuery ? (
+                <>
+                    <Ionicons name="search-outline" size={48} color={THEME.textSecondary} />
+                    <Text style={styles.emptyText}>No encontrado</Text>
+                    <Text style={styles.emptySubtext}>INTENTA CON OTRO TÉRMINO</Text>
+                </>
+            ) : (
+                <>
+                    <Text style={styles.emptyText}>No hay flujos de trabajo</Text>
+                    <Text style={styles.emptySubtext}>
+                    Tus flujos de n8n aparecerán aquí.
+                    </Text>
+                </>
+            )}
+          </View>
+        }
+      />
+
+      {/* Floating Menu */}
+      <View style={styles.floatingMenuContainer}>
+        <BlurView intensity={80} tint="dark" style={styles.floatingMenu}>
+             <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => setFilter('all')}
+                activeOpacity={0.7}
+             >
+                 <View style={[styles.menuIconContainer, filter === 'all' && styles.menuIconActive]}>
+                    <Ionicons name={filter === 'all' ? "home" : "home-outline"} size={22} color={filter === 'all' ? "#000" : "#FFF"} />
+                 </View>
+             </TouchableOpacity>
+             
+             <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => refetch()}
+                activeOpacity={0.7}
+             >
+                 <View style={[styles.menuIconContainer, isRefetching && styles.menuIconActive]}>
+                    <Ionicons name="refresh" size={22} color={isRefetching ? "#000" : "#FFF"} />
+                 </View>
+             </TouchableOpacity>
+
+             <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={() => router.push('/setup')}
+                activeOpacity={0.7}
+             >
+                 <View style={styles.menuIconContainer}>
+                    <Ionicons name="server-outline" size={22} color="#FFF" />
+                 </View>
+             </TouchableOpacity>
+        </BlurView>
+      </View>
     </View>
   );
 }
@@ -50,26 +310,242 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: THEME.background,
+  },
+  centerContainer: {
+    flex: 1,
+    backgroundColor: THEME.background,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
     padding: 24,
+  },
+  gradientHeader: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 300,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 16,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    letterSpacing: -0.5,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  iconButton: {
+      padding: 4,
+  },
+  // Search Styles
+  searchContainer: {
+      paddingHorizontal: 16,
+      marginBottom: 16,
+  },
+  searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 48,
+  },
+  searchIcon: {
+      marginRight: 8,
+  },
+  searchInput: {
+      flex: 1,
+      color: THEME.textPrimary,
+      fontSize: 16,
+      height: '100%',
+  },
+  sectionHeader: {
+      paddingHorizontal: 16,
+      marginBottom: 12,
+  },
+  sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: THEME.textPrimary,
+      letterSpacing: -0.5,
+  },
+  filterContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 16,
+      marginBottom: 8,
+      gap: 12,
+  },
+  filterChip: {
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+  },
+  filterChipActive: {
+      backgroundColor: THEME.accent,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+  },
+  filterText: {
+      color: THEME.textPrimary,
+      fontSize: 13,
+      fontWeight: '500',
+  },
+  filterTextActive: {
+      color: '#000000',
+      fontSize: 13,
+      fontWeight: '600',
+  },
+  listContent: {
+    paddingBottom: 120, // Space for floating menu
+    paddingTop: 8,
+  },
+  workflowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  iconContainer: {
+      marginRight: 12,
+  },
+  infoContainer: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  workflowName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME.textPrimary,
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  workflowNameInactive: {
+      color: THEME.textSecondary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activeDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: THEME.success, // Match play button
+      marginRight: 4,
+  },
+  workflowMeta: {
+    fontSize: 13,
+    color: THEME.textSecondary,
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: THEME.textSecondary,
   },
-  title: {
-    fontSize: 32,
+  errorTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: THEME.textPrimary,
+    marginTop: 16,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  errorText: {
+    fontSize: 14,
+    color: THEME.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: THEME.textPrimary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 30,
+    marginBottom: 16,
+  },
+  retryButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  settingsLink: {
+      padding: 8,
+  },
+  settingsLinkText: {
+    color: THEME.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: THEME.textSecondary,
+    textTransform: 'uppercase', // Style adjust for "search not found"
+    letterSpacing: 1,
+  },
+  // Floating Menu Styles
+  floatingMenuContainer: {
+      position: 'absolute',
+      bottom: 24, // Moved down from 40
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      zIndex: 100,
+  },
+  floatingMenu: {
+      flexDirection: 'row',
+      backgroundColor: 'rgba(30, 30, 30, 0.4)', // Reduced opacity for stronger blur effect
+      borderRadius: 40,
+      paddingVertical: 8,
+      paddingHorizontal: 32,
+      gap: 24,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.5,
+      shadowRadius: 20,
+      elevation: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.08)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden', // Required for BlurView borderRadius
+  },
+  menuItem: {
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  menuIconContainer: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent',
+  },
+  menuIconActive: {
+      backgroundColor: THEME.accent,
   },
 });
