@@ -1,3 +1,4 @@
+import { useLanguage } from '@/context/LanguageContext';
 import {
     getActiveServerId,
     getServers,
@@ -43,6 +44,8 @@ export default function SetupScreen() {
   
   // UI Mode
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+
+  const { t, language, setLanguage } = useLanguage();
 
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -114,17 +117,17 @@ export default function SetupScreen() {
   const handleActivate = async (id: string) => {
       await setActiveServerId(id);
       setActiveId(id);
-      Alert.alert('Servidor Activo', 'Has cambiado el servidor activo.');
+      Alert.alert(t.active, 'Has cambiado el servidor activo.'); // Simplify msg or add to i18n later
   };
 
   const handleDelete = async (id: string) => {
       Alert.alert(
-          'Eliminar Servidor',
-          '¿Estás seguro? Esto no se puede deshacer.',
+          t.deleteServerTitle,
+          t.deleteServerConfirm,
           [
-              { text: 'Cancelar', style: 'cancel' },
+              { text: t.cancel, style: 'cancel' },
               { 
-                  text: 'Eliminar', 
+                  text: t.delete, 
                   style: 'destructive',
                   onPress: async () => {
                       await removeServer(id);
@@ -250,22 +253,13 @@ export default function SetupScreen() {
       await loadData();
       resetForm();
       setViewMode('list'); // Go back to list after saving
-      Alert.alert('Guardado', 'Servidor guardado correctamente.');
+      Alert.alert(t.save, t.serverSaved);
     } catch {
-      Alert.alert('Error', 'No se pudo guardar la configuración');
+      Alert.alert(t.error, 'No se pudo guardar la configuración');
     } finally {
       setLoading(false);
     }
   };
-
-  if (loadingConfig) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={THEME.accent} />
-        <Text style={styles.loadingText}>Cargando servidores...</Text>
-      </View>
-    );
-  }
 
   const renderServerItem = ({ item, index }: { item: N8nServer; index: number }) => {
       const isActive = item.id === activeId;
@@ -299,17 +293,17 @@ export default function SetupScreen() {
 
                 {/* Action Column */}
                 <View style={styles.serverActions}>
-                    {isActive ? (
+                     {isActive ? (
                         <View style={styles.statusBadge}>
                              <View style={styles.liveDot} />
-                             <Text style={styles.statusText}>EN LÍNEA</Text>
+                             <Text style={styles.statusText}>{t.online}</Text>
                         </View>
                     ) : (
                         <TouchableOpacity 
                             style={styles.connectButton}
                             onPress={() => handleActivate(item.id)}
                         >
-                            <Text style={styles.connectButtonText}>Conectar</Text>
+                            <Text style={styles.connectButtonText}>{t.connect}</Text>
                         </TouchableOpacity>
                     )}
                 </View>
@@ -319,11 +313,11 @@ export default function SetupScreen() {
               <View style={styles.cardFooter}>
                   <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.footerAction}>
                       <Ionicons name="trash-outline" size={16} color={THEME.error} />
-                      <Text style={[styles.footerActionText, { color: THEME.error }]}>Eliminar</Text>
+                      <Text style={[styles.footerActionText, { color: THEME.error }]}>{t.delete}</Text>
                   </TouchableOpacity>
                   
                   <View style={styles.footerAction}>
-                      <Text style={styles.footerActionText}>Editar</Text>
+                      <Text style={styles.footerActionText}>{t.edit}</Text>
                       <Ionicons name="chevron-forward" size={14} color={THEME.textSecondary} />
                   </View>
               </View>
@@ -331,6 +325,15 @@ export default function SetupScreen() {
           </Animated.View>
       );
   };
+
+  if (loadingConfig) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={THEME.accent} />
+        <Text style={styles.loadingText}>{t.loading}</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -351,10 +354,10 @@ export default function SetupScreen() {
 
         <View style={styles.headerTextContainer}>
             <Text style={styles.title}>
-                {viewMode === 'list' ? 'Servidores' : (editingId ? 'Editar Servidor' : 'Nuevo Servidor')}
+                {viewMode === 'list' ? t.servers : (editingId ? t.editServer : t.newServer)}
             </Text>
             {viewMode === 'list' && (
-                <Text style={styles.subtitle}>Gestiona tus conexiones n8n</Text>
+                <Text style={styles.subtitle}>{t.manageConnections}</Text>
             )}
         </View>
         
@@ -375,7 +378,7 @@ export default function SetupScreen() {
                     <Ionicons name="search" size={20} color={THEME.textSecondary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Buscar servidores..."
+                        placeholder={t.searchPlaceholder}
                         placeholderTextColor={THEME.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -399,13 +402,13 @@ export default function SetupScreen() {
                         {searchQuery ? (
                              <>
                                 <Ionicons name="search-outline" size={64} color={THEME.surfaceHighlight} />
-                                <Text style={styles.emptyText}>No encontrado</Text>
+                                <Text style={styles.emptyText}>{t.notFound}</Text>
                              </>
                         ): (
                             <>
                                 <Ionicons name="server-outline" size={64} color={THEME.surfaceHighlight} />
-                                <Text style={styles.emptyText}>No hay servidores configurados.</Text>
-                                <Text style={[styles.emptyText, { fontSize: 13, marginTop: 8 }]}>Agrega uno para comenzar.</Text>
+                                <Text style={styles.emptyText}>{t.noServers}</Text>
+                                <Text style={[styles.emptyText, { fontSize: 13, marginTop: 8 }]}>{t.addServer}</Text>
                             </>
                         )}
                     </View>
@@ -419,7 +422,7 @@ export default function SetupScreen() {
                             router.replace('/onboarding');
                         }}
                     >
-                        <Text style={styles.introButtonText}>Ver Intro de Nuevo</Text>
+                        <Text style={styles.introButtonText}>{t.introLink}</Text>
                     </TouchableOpacity>
                 }
             />
@@ -440,7 +443,7 @@ export default function SetupScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.inputContainer}>
-                <Text style={styles.label}>Nombre</Text>
+                <Text style={styles.label}>{t.serverName}</Text>
                 <TextInput
                 style={styles.input}
                 placeholder="Mi Servidor n8n"
@@ -452,7 +455,7 @@ export default function SetupScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-                <Text style={styles.label}>URL del Servidor</Text>
+                <Text style={styles.label}>{t.serverUrl}</Text>
                 <TextInput
                 style={styles.input}
                 placeholder="https://n8n.example.com"
@@ -467,7 +470,7 @@ export default function SetupScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-                <Text style={styles.label}>API Key</Text>
+                <Text style={styles.label}>{t.apiKey}</Text>
                 <TextInput
                 style={styles.input}
                 placeholder="n8n_api_xxxxxxxxxxxxx"
@@ -490,7 +493,7 @@ export default function SetupScreen() {
                 {testing ? (
                     <ActivityIndicator color={THEME.accent} />
                 ) : (
-                    <Text style={styles.testButtonText}>Probar Conexión</Text>
+                    <Text style={styles.testButtonText}>{t.testConnection}</Text>
                 )}
                 </TouchableOpacity>
 
@@ -502,7 +505,7 @@ export default function SetupScreen() {
                 {loading ? (
                     <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                    <Text style={styles.buttonText}>{editingId ? 'Actualizar' : 'Guardar'}</Text>
+                    <Text style={styles.buttonText}>{editingId ? t.save : t.save}</Text>
                 )}
                 </TouchableOpacity>
             </View>
@@ -512,6 +515,8 @@ export default function SetupScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -524,7 +529,7 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center', // Centered vertically
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 60,
     paddingHorizontal: 16,
@@ -583,7 +588,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
       padding: 16,
-      paddingBottom: 100, // Space for FAB
+      paddingBottom: 100,
   },
   emptyText: {
       color: THEME.textSecondary,

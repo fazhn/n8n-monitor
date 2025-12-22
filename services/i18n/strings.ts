@@ -1,0 +1,134 @@
+export type Language = 'es' | 'en';
+
+export const translations = {
+  es: {
+    // General
+    loading: 'Cargando...',
+    error: 'Error',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    delete: 'Eliminar',
+    edit: 'Editar',
+    active: 'ACTIVO',
+    inactive: 'INACTIVO',
+    
+    // Home
+    greeting: 'Hola, Usuario',
+    greetingMorning: 'Buenos días',
+    greetingAfternoon: 'Buenas tardes',
+    greetingEvening: 'Buenas noches',
+    summary: 'Resumen de flujos',
+    total: 'Total',
+    activeCount: 'Activos',
+    inactiveCount: 'Inactivos',
+    myWorkflows: 'Mis Flujos',
+    all: 'Todos',
+    searchPlaceholder: 'Buscar flujos...',
+    noWorkflows: 'No hay flujos de trabajo',
+    noWorkflowsSub: 'Tus flujos de n8n aparecerán aquí.',
+    notFound: 'No encontrado',
+    notFoundSub: 'INTENTA CON OTRO TÉRMINO',
+    
+    // Setup / Servers
+    servers: 'Servidores',
+    manageConnections: 'Gestiona tus conexiones n8n',
+    newServer: 'Nuevo Servidor',
+    editServer: 'Editar Servidor',
+    serverName: 'Nombre',
+    serverUrl: 'URL del Servidor',
+    apiKey: 'API Key',
+    testConnection: 'Probar Conexión',
+    connect: 'Conectar',
+    online: 'EN LÍNEA',
+    noServers: 'No hay servidores configurados.',
+    addServer: 'Agrega uno para comenzar.',
+    introLink: 'Ver Intro de Nuevo',
+    serverSaved: 'Servidor guardado correctamente.',
+    deleteServerTitle: 'Eliminar Servidor',
+    deleteServerConfirm: '¿Estás seguro? Esto no se puede deshacer.',
+
+    // Workflow Detail
+    activations: 'Ejecuciones',
+    success: 'Exitosas',
+    failed: 'Errores',
+    history: 'Historial de Ejecuciones',
+    successExec: 'Ejecución exitosa',
+    failedExec: 'Falló la ejecución',
+    runningExec: 'En ejecución',
+    noExecutions: 'No hay ejecuciones recientes.',
+    loadError: 'No se pudo cargar el flujo',
+    retry: 'Reintentar',
+    updated: 'Actualizado',
+    paused: 'PAUSADO',
+
+    // Settings
+    language: 'Idioma',
+    spanish: 'Español',
+    english: 'Inglés'
+  },
+  en: {
+    // General
+    loading: 'Loading...',
+    error: 'Error',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    active: 'ACTIVE',
+    inactive: 'INACTIVE',
+
+    // Home
+    greeting: 'Hello, User',
+    greetingMorning: 'Good morning',
+    greetingAfternoon: 'Good afternoon',
+    greetingEvening: 'Good evening',
+    summary: 'Workflow Summary',
+    total: 'Total',
+    activeCount: 'Active',
+    inactiveCount: 'Inactive',
+    myWorkflows: 'My Workflows',
+    all: 'All',
+    searchPlaceholder: 'Search workflows...',
+    noWorkflows: 'No workflows found',
+    noWorkflowsSub: 'Your n8n workflows will appear here.',
+    notFound: 'Not found',
+    notFoundSub: 'TRY ANOTHER TERM',
+
+    // Setup / Servers
+    servers: 'Servers',
+    manageConnections: 'Manage your n8n connections',
+    newServer: 'New Server',
+    editServer: 'Edit Server',
+    serverName: 'Name',
+    serverUrl: 'Server URL',
+    apiKey: 'API Key',
+    testConnection: 'Test Connection',
+    connect: 'Connect',
+    online: 'ONLINE',
+    noServers: 'No servers configured.',
+    addServer: 'Add one to start.',
+    introLink: 'Watch Intro Again',
+    serverSaved: 'Server saved successfully.',
+    deleteServerTitle: 'Delete Server',
+    deleteServerConfirm: 'Are you sure? This cannot be undone.',
+
+    // Workflow Detail
+    activations: 'Executions',
+    success: 'Successful',
+    failed: 'Errors',
+    history: 'Execution History',
+    successExec: 'Execution successful',
+    failedExec: 'Execution failed',
+    runningExec: 'Running',
+    noExecutions: 'No recent executions.',
+    loadError: 'Could not load workflow',
+    retry: 'Retry',
+    updated: 'Updated',
+    paused: 'PAUSED',
+
+    // Settings
+    language: 'Language',
+    spanish: 'Spanish',
+    english: 'English'
+  }
+};

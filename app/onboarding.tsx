@@ -1,19 +1,20 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  StatusBar,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLanguage } from '@/context/LanguageContext';
+import { setOnboardingCompleted } from '@/services/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { setOnboardingCompleted } from '@/services/storage';
+import { useRouter } from 'expo-router';
+import React, { useRef, useState } from 'react';
+import {
+    Dimensions,
+    FlatList,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,31 +25,47 @@ const THEME = {
   accent: '#EA4B71', // n8n Primary
 };
 
-const SLIDES = [
+const getSlides = (lang: 'es' | 'en') => [
+  {
+    id: '0',
+    title: 'Welcome / Bienvenido',
+    description: 'Choose your language / Elige tu idioma',
+    icon: 'language-outline',
+    isLanguageSelect: true,
+  },
   {
     id: '1',
-    title: 'Control Total',
-    description: 'Gestiona tus flujos de trabajo de n8n desde cualquier lugar. Tu estudio, en tu bolsillo.',
+    title: lang === 'es' ? 'Control Total' : 'Total Control',
+    description: lang === 'es' 
+      ? 'Gestiona tus flujos de trabajo de n8n desde cualquier lugar. Tu estudio, en tu bolsillo.'
+      : 'Manage your n8n workflows from anywhere. Your studio, in your pocket.',
     icon: 'git-network-outline',
   },
   {
     id: '2',
-    title: 'Monitoreo en Vivo',
-    description: 'Mantente al tanto de tus ejecuciones. Recibe actualizaciones en tiempo real sobre el estado de tus automatizaciones.',
+    title: lang === 'es' ? 'Monitoreo en Vivo' : 'Live Monitoring',
+    description: lang === 'es'
+      ? 'Mantente al tanto de tus ejecuciones. Recibe actualizaciones en tiempo real sobre el estado de tus automatizaciones.'
+      : 'Stay on top of your executions. Get real-time updates on the status of your automations.',
     icon: 'pulse-outline',
   },
   {
     id: '3',
-    title: 'Gestión Multi-Servidor',
-    description: 'Conéctate a múltiples instancias de n8n. Desarrollo, Staging y Producción en una sola app.',
+    title: lang === 'es' ? 'Gestión Multi-Servidor' : 'Multi-Server Management',
+    description: lang === 'es'
+      ? 'Conéctate a múltiples instancias de n8n. Desarrollo, Staging y Producción en una sola app.'
+      : 'Connect to multiple n8n instances. Development, Staging and Production in one app.',
     icon: 'server-outline',
   },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { language, setLanguage } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  
+  const SLIDES = getSlides(language);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -78,6 +95,47 @@ export default function OnboardingScreen() {
   };
 
   const renderItem = ({ item }: { item: typeof SLIDES[0] }) => {
+    if (item.isLanguageSelect) {
+      return (
+        <View style={styles.slide}>
+          <View style={styles.languageIconContainer}>
+              <LinearGradient
+                  colors={['rgba(234, 75, 113, 0.2)', 'transparent']}
+                  style={styles.languageIconBackground}
+              />
+              <Ionicons name="language-outline" size={60} color={THEME.accent} />
+          </View>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+          
+          {/* Language Selection Buttons */}
+          <View style={styles.languageButtonsContainer}>
+            <TouchableOpacity 
+              style={[styles.languageButton, language === 'es' && styles.languageButtonActive]}
+              onPress={() => {
+                setLanguage('es');
+                handleNext();
+              }}
+            >
+              <Text style={styles.languageFlag}>🇪🇸</Text>
+              <Text style={[styles.languageButtonText, language === 'es' && styles.languageButtonTextActive]}>Español</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
+              onPress={() => {
+                setLanguage('en');
+                handleNext();
+              }}
+            >
+              <Text style={styles.languageFlag}>🇬🇧</Text>
+              <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>English</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.slide}>
         <View style={styles.iconContainer}>
@@ -126,10 +184,13 @@ export default function OnboardingScreen() {
 
         {/* Buttons */}
         <View style={styles.buttonContainer}>
-            {currentIndex < SLIDES.length - 1 ? (
+            {currentIndex === 0 ? (
+                // Hide buttons on language selection screen
+                null
+            ) : currentIndex < SLIDES.length - 1 ? (
                 <View style={styles.rowButtons}>
                     <TouchableOpacity onPress={completeOnboarding} style={styles.skipButton}>
-                        <Text style={styles.skipText}>Saltar</Text>
+                        <Text style={styles.skipText}>{language === 'es' ? 'Saltar' : 'Skip'}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleNext} style={styles.nextButton}>
                         <Ionicons name="arrow-forward" size={24} color="#FFF" />
@@ -137,7 +198,7 @@ export default function OnboardingScreen() {
                 </View>
             ) : (
                 <TouchableOpacity onPress={completeOnboarding} style={styles.mainButton}>
-                    <Text style={styles.mainButtonText}>Comenzar</Text>
+                    <Text style={styles.mainButtonText}>{language === 'es' ? 'Comenzar' : 'Get Started'}</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -170,6 +231,19 @@ const styles = StyleSheet.create({
       width: 200,
       height: 200,
       borderRadius: 100,
+  },
+  languageIconContainer: {
+      marginBottom: 30,
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: 120,
+      height: 120,
+  },
+  languageIconBackground: {
+      position: 'absolute',
+      width: 120,
+      height: 120,
+      borderRadius: 60,
   },
   title: {
     fontSize: 32,
@@ -241,5 +315,37 @@ const styles = StyleSheet.create({
       color: '#FFFFFF',
       fontSize: 18,
       fontWeight: 'bold',
+  },
+  languageButtonsContainer: {
+    marginTop: 40,
+    gap: 16,
+    width: '100%',
+  },
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+    gap: 12,
+  },
+  languageButtonActive: {
+    backgroundColor: 'rgba(234, 75, 113, 0.2)',
+    borderColor: THEME.accent,
+  },
+  languageFlag: {
+    fontSize: 32,
+  },
+  languageButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: THEME.textSecondary,
+  },
+  languageButtonTextActive: {
+    color: THEME.textPrimary,
   },
 });

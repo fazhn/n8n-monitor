@@ -4,6 +4,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,6 +41,9 @@ export default function WorkflowDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error' | 'running'>('all');
+  const ITEMS_PER_PAGE = 10;
 
   const {
     data: workflow,
@@ -63,8 +67,15 @@ export default function WorkflowDetail() {
     enabled: !!id,
   });
 
+  // Filter executions based on status
+  const filteredExecutions = executions?.filter(e => {
+    if (statusFilter === 'all') return true;
+    return e.status === statusFilter;
+  }) || [];
+
   const successCount = executions?.filter(e => e.status === 'success').length || 0;
   const errorCount = executions?.filter(e => e.status === 'error').length || 0;
+  const runningCount = executions?.filter(e => e.status === 'running').length || 0;
 
   const toggleMutation = useMutation({
     mutationFn: (active: boolean) =>
@@ -272,15 +283,106 @@ export default function WorkflowDetail() {
         {/* Executions List */}
         <View style={styles.executionsSection}>
           <Text style={styles.sectionTitle}>Historial de Ejecuciones</Text>
+          
+          {/* Filter Chips */}
+          <View style={styles.filterContainer}>
+            <TouchableOpacity 
+              style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
+              onPress={() => {
+                setStatusFilter('all');
+                setCurrentPage(1);
+              }}
+            >
+              <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
+                Todos ({executions?.length || 0})
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.filterChip, statusFilter === 'success' && styles.filterChipActive]}
+              onPress={() => {
+                setStatusFilter('success');
+                setCurrentPage(1);
+              }}
+            >
+              <Ionicons name="checkmark-circle" size={16} color={statusFilter === 'success' ? '#000' : THEME.success} />
+              <Text style={[styles.filterChipText, statusFilter === 'success' && styles.filterChipTextActive]}>
+                Exitosas ({successCount})
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.filterChip, statusFilter === 'error' && styles.filterChipActive]}
+              onPress={() => {
+                setStatusFilter('error');
+                setCurrentPage(1);
+              }}
+            >
+              <Ionicons name="close-circle" size={16} color={statusFilter === 'error' ? '#000' : THEME.error} />
+              <Text style={[styles.filterChipText, statusFilter === 'error' && styles.filterChipTextActive]}>
+                Errores ({errorCount})
+              </Text>
+            </TouchableOpacity>
+            
+            {runningCount > 0 && (
+              <TouchableOpacity 
+                style={[styles.filterChip, statusFilter === 'running' && styles.filterChipActive]}
+                onPress={() => {
+                  setStatusFilter('running');
+                  setCurrentPage(1);
+                }}
+              >
+                <Ionicons name="time-outline" size={16} color={statusFilter === 'running' ? '#000' : THEME.textSecondary} />
+                <Text style={[styles.filterChipText, statusFilter === 'running' && styles.filterChipTextActive]}>
+                  En curso ({runningCount})
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {executionsLoading ? (
             <ActivityIndicator size="small" color={THEME.accent} style={{ marginTop: 20 }} />
-          ) : executions && executions.length > 0 ? (
-            <View style={styles.executionsList}>
-              {executions.slice(0, 20).map(renderExecution)}
-            </View>
+          ) : filteredExecutions.length > 0 ? (
+            <>
+              <View style={styles.executionsList}>
+                {filteredExecutions
+                  .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                  .map(renderExecution)}
+              </View>
+              
+              {/* Pagination Controls */}
+              {filteredExecutions.length > ITEMS_PER_PAGE && (
+                <View style={styles.paginationContainer}>
+                  <TouchableOpacity 
+                    style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? THEME.textSecondary : THEME.textPrimary} />
+                    <Text style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
+                  </TouchableOpacity>
+                  
+                  <View style={styles.paginationInfo}>
+                    <Text style={styles.paginationText}>
+                      Página {currentPage} de {Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)}
+                    </Text>
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={[styles.paginationButton, currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) && styles.paginationButtonDisabled]}
+                    onPress={() => setCurrentPage(prev => Math.min(Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE), prev + 1))}
+                    disabled={currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)}
+                  >
+                    <Text style={[styles.paginationButtonText, currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) && styles.paginationButtonTextDisabled]}>Siguiente</Text>
+                    <Ionicons name="chevron-forward" size={20} color={currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) ? THEME.textSecondary : THEME.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           ) : (
-            <Text style={styles.emptyText}>No hay ejecuciones recientes.</Text>
+            <Text style={styles.emptyText}>
+              {statusFilter === 'all' ? 'No hay ejecuciones recientes.' : `No hay ejecuciones con estado "${statusFilter}".`}
+            </Text>
           )}
         </View>
       </ScrollView>
@@ -507,5 +609,72 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
       color: THEME.textPrimary,
-  }
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  paginationButtonDisabled: {
+    opacity: 0.3,
+  },
+  paginationButtonText: {
+    color: THEME.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  paginationButtonTextDisabled: {
+    color: THEME.textSecondary,
+  },
+  paginationInfo: {
+    paddingHorizontal: 16,
+  },
+  paginationText: {
+    color: THEME.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  filterChipActive: {
+    backgroundColor: THEME.accent,
+    borderColor: THEME.accent,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.textPrimary,
+  },
+  filterChipTextActive: {
+    color: '#000',
+  },
 });

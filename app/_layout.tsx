@@ -1,3 +1,4 @@
+import { LanguageProvider } from "@/context/LanguageContext";
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -24,18 +25,20 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={CustomDarkTheme}>
-         <View style={{ flex: 1, backgroundColor: '#121212' }}>
-            <Stack
-            screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#121212' },
-                animation: 'slide_from_right',
-                gestureEnabled: true,
-            }}
-            />
-        </View>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider value={CustomDarkTheme}>
+          <View style={{ flex: 1, backgroundColor: '#121212' }}>
+              <Stack
+              screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#121212' },
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+              }}
+              />
+          </View>
+        </ThemeProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
