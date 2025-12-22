@@ -2,6 +2,7 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { useState } from "react";
+import { View } from "react-native";
 
 const CustomDarkTheme = {
   ...DarkTheme,
@@ -24,14 +25,16 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={CustomDarkTheme}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#121212' },
-            animation: 'slide_from_right',
-            gestureEnabled: true,
-          }}
-        />
+         <View style={{ flex: 1, backgroundColor: '#121212' }}>
+            <Stack
+            screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#121212' },
+                animation: 'slide_from_right',
+                gestureEnabled: true,
+            }}
+            />
+        </View>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -21,8 +21,9 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 // Spotify-inspired Theme Constants
 const THEME = {
@@ -57,6 +58,7 @@ export default function SetupScreen() {
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadData();
@@ -88,6 +90,13 @@ export default function SetupScreen() {
       setLoadingConfig(false);
     }
   };
+
+  // Filter Servers
+  const filteredServers = servers.filter(
+      server => 
+          server.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          server.serverUrl.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleAddNew = () => {
       resetForm();
@@ -258,46 +267,68 @@ export default function SetupScreen() {
     );
   }
 
-  const renderServerItem = ({ item }: { item: N8nServer }) => {
+  const renderServerItem = ({ item, index }: { item: N8nServer; index: number }) => {
       const isActive = item.id === activeId;
       
       return (
+          <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
           <TouchableOpacity 
             style={[styles.serverCard, isActive && styles.serverCardActive]}
             onPress={() => handleEdit(item)}
             activeOpacity={0.7}
           >
-              <View style={styles.serverCardContent}>
-                <View style={styles.serverInfo}>
-                    <Text style={styles.serverName}>{item.name}</Text>
-                    <Text style={styles.serverUrl} numberOfLines={1}>{item.serverUrl}</Text>
+              <View style={styles.serverCardInner}>
+                {/* Icon Column */}
+                <View style={[styles.serverIconContainer, isActive ? styles.serverIconActive : styles.serverIconInactive]}>
+                    <Ionicons 
+                        name={isActive ? "cloud-done" : "cloud-outline"} 
+                        size={24} 
+                        color={isActive ? THEME.success : THEME.textSecondary} 
+                    />
                 </View>
 
-                {isActive && (
-                    <View style={styles.activeBadge}>
-                        <Text style={styles.activeBadgeText}>ACTIVO</Text>
-                    </View>
-                )}
+                {/* Info Column */}
+                <View style={styles.serverInfo}>
+                    <Text style={[styles.serverName, isActive && { color: THEME.success }]}>
+                        {item.name}
+                    </Text>
+                    <Text style={styles.serverUrl} numberOfLines={1}>
+                        {item.serverUrl.replace(/^https?:\/\//, '')}
+                    </Text>
+                </View>
+
+                {/* Action Column */}
+                <View style={styles.serverActions}>
+                    {isActive ? (
+                        <View style={styles.statusBadge}>
+                             <View style={styles.liveDot} />
+                             <Text style={styles.statusText}>EN LÍNEA</Text>
+                        </View>
+                    ) : (
+                        <TouchableOpacity 
+                            style={styles.connectButton}
+                            onPress={() => handleActivate(item.id)}
+                        >
+                            <Text style={styles.connectButtonText}>Conectar</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
               </View>
-              
-              <View style={styles.serverActions}>
-                 {!isActive && (
-                      <TouchableOpacity 
-                        style={styles.activateButton}
-                        onPress={() => handleActivate(item.id)}
-                      >
-                          <Text style={styles.activateButtonText}>Usar</Text>
-                      </TouchableOpacity>
-                  )}
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(item.id)}
-                  >
-                      <Ionicons name="trash-outline" size={20} color={THEME.textSecondary} />
+
+              {/* Footer Actions (Edit/Delete hint) */}
+              <View style={styles.cardFooter}>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.footerAction}>
+                      <Ionicons name="trash-outline" size={16} color={THEME.error} />
+                      <Text style={[styles.footerActionText, { color: THEME.error }]}>Eliminar</Text>
                   </TouchableOpacity>
-                  <Ionicons name="chevron-forward" size={20} color={THEME.textSecondary} />
+                  
+                  <View style={styles.footerAction}>
+                      <Text style={styles.footerActionText}>Editar</Text>
+                      <Ionicons name="chevron-forward" size={14} color={THEME.textSecondary} />
+                  </View>
               </View>
           </TouchableOpacity>
+          </Animated.View>
       );
   };
 
@@ -338,16 +369,45 @@ export default function SetupScreen() {
       {/* CONTENT */}
       {viewMode === 'list' ? (
           <View style={styles.listContainer}>
+             {/* Search Bar */}
+             <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                    <Ionicons name="search" size={20} color={THEME.textSecondary} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar servidores..."
+                        placeholderTextColor={THEME.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        autoCorrect={false}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={20} color={THEME.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+             </Animated.View>
+
             <FlatList
-                data={servers}
+                data={filteredServers}
                 renderItem={renderServerItem}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContent}
                 ListEmptyComponent={
                     <View style={{ padding: 40, alignItems: 'center' }}>
-                        <Ionicons name="server-outline" size={64} color={THEME.surfaceHighlight} />
-                        <Text style={styles.emptyText}>No hay servidores configurados.</Text>
-                        <Text style={[styles.emptyText, { fontSize: 13, marginTop: 8 }]}>Agrega uno para comenzar.</Text>
+                        {searchQuery ? (
+                             <>
+                                <Ionicons name="search-outline" size={64} color={THEME.surfaceHighlight} />
+                                <Text style={styles.emptyText}>No encontrado</Text>
+                             </>
+                        ): (
+                            <>
+                                <Ionicons name="server-outline" size={64} color={THEME.surfaceHighlight} />
+                                <Text style={styles.emptyText}>No hay servidores configurados.</Text>
+                                <Text style={[styles.emptyText, { fontSize: 13, marginTop: 8 }]}>Agrega uno para comenzar.</Text>
+                            </>
+                        )}
                     </View>
                 }
                 ListFooterComponent={
@@ -364,12 +424,14 @@ export default function SetupScreen() {
                 }
             />
             {/* FAB */}
+            <Animated.View entering={ZoomIn.delay(500).springify()} style={{ position: 'absolute', bottom: 40, right: 24 }}>
             <TouchableOpacity 
-                style={styles.fab}
+                style={styles.fabStatic} // Was separate absolute, typically better to wrap absolute view
                 onPress={handleAddNew}
             >
                 <Ionicons name="add" size={32} color="#FFFFFF" />
             </TouchableOpacity>
+            </Animated.View>
           </View>
       ) : (
           <ScrollView
@@ -493,6 +555,29 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surfaceHighlight,
     borderRadius: 20,
   },
+  // Search Styles
+  searchContainer: {
+      paddingHorizontal: 16,
+      marginTop: 16,
+      marginBottom: 8,
+  },
+  searchBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      height: 48,
+  },
+  searchIcon: {
+      marginRight: 8,
+  },
+  searchInput: {
+      flex: 1,
+      color: THEME.textPrimary,
+      fontSize: 16,
+      height: '100%',
+  },
   listContainer: {
       flex: 1,
   },
@@ -514,72 +599,123 @@ const styles = StyleSheet.create({
       marginBottom: 12,
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.05)',
+      overflow: 'hidden',
   },
   serverCardActive: {
-      borderColor: THEME.success,
+      borderColor: 'rgba(34, 197, 94, 0.4)',
       backgroundColor: 'rgba(34, 197, 94, 0.05)',
   },
-  serverCardEditing: {
-      // No longer needed as we switch views
-  },
-  serverCardContent: {
+  serverCardInner: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 12,
+      alignItems: 'center',
+      marginBottom: 16,
+  },
+  serverIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+      borderWidth: 1,
+  },
+  serverIconActive: {
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      borderColor: 'rgba(34, 197, 94, 0.2)',
+  },
+  serverIconInactive: {
+      backgroundColor: THEME.surfaceHighlight,
+      borderColor: 'transparent',
   },
   serverInfo: {
       flex: 1,
+      gap: 4,
   },
   serverName: {
       color: THEME.textPrimary,
       fontWeight: 'bold',
       fontSize: 16,
-      marginBottom: 4,
   },
   serverUrl: {
       color: THEME.textSecondary,
       fontSize: 12,
   },
   serverActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      gap: 12,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(255,255,255,0.05)',
-      paddingTop: 12,
+      justifyContent: 'center',
   },
-  activeBadge: {
-      backgroundColor: 'rgba(34, 197, 94, 0.2)',
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
-      marginLeft: 8,
-  },
-  activeBadgeText: {
-      color: THEME.success,
-      fontSize: 10,
-      fontWeight: 'bold',
-  },
-  activateButton: {
+  connectButton: {
+      backgroundColor: THEME.surfaceHighlight,
       paddingHorizontal: 16,
       paddingVertical: 8,
-      backgroundColor: THEME.surfaceHighlight,
       borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(255,255,255,0.1)',
   },
-  activateButtonText: {
+  connectButtonText: {
       color: THEME.textPrimary,
       fontSize: 12,
       fontWeight: '600',
   },
-  deleteButton: {
-      padding: 8,
+  statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(34, 197, 94, 0.1)',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(34, 197, 94, 0.2)',
+  },
+  liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: THEME.success,
+      marginRight: 6,
+  },
+  statusText: {
+      color: THEME.success,
+      fontSize: 10,
+      fontWeight: 'bold',
+      letterSpacing: 0.5,
+  },
+  cardFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.05)',
+  },
+  footerAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+  },
+  footerActionText: {
+      fontSize: 12,
+      color: THEME.textSecondary,
   },
   fab: {
       position: 'absolute',
       bottom: 40,
       right: 24,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: THEME.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: "#000",
+      shadowOffset: {
+          width: 0,
+          height: 4,
+      },
+      shadowOpacity: 0.30,
+      shadowRadius: 4.65,
+      elevation: 8,
+  },
+  fabStatic: {
       width: 56,
       height: 56,
       borderRadius: 28,

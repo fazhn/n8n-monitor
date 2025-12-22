@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { getWorkflows } from '@/services/n8n-api';
 import { hasN8nConfig, isOnboardingCompleted } from '@/services/storage';
@@ -145,13 +146,14 @@ export default function Index() {
   const inactiveCount = workflows?.filter(w => !w.active).length || 0;
   const totalCount = workflows?.length || 0;
 
-  const renderWorkflow = ({ item }: { item: N8nWorkflow }) => {
+  const renderWorkflow = ({ item, index }: { item: N8nWorkflow; index: number }) => {
     const lastUpdate = formatDistanceToNow(new Date(item.updatedAt), {
       addSuffix: true,
       locale: es,
     });
 
     return (
+      <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
       <TouchableOpacity
         style={styles.workflowCard}
         onPress={() => router.push(`/workflow/${item.id}`)}
@@ -190,6 +192,7 @@ export default function Index() {
              <View style={styles.flowDotEnd} />
         </View>
       </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -211,7 +214,7 @@ export default function Index() {
       </View>
 
       {/* Stats Dashboard */}
-      <View style={styles.statsRow}>
+      <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.statsRow}>
           <View style={styles.statCard}>
               <Text style={styles.statNumber}>{totalCount}</Text>
               <Text style={styles.statLabel}>Total</Text>
@@ -224,10 +227,10 @@ export default function Index() {
               <Text style={[styles.statNumber, { color: THEME.textSecondary }]}>{inactiveCount}</Text>
               <Text style={styles.statLabel}>Inactivos</Text>
           </View>
-      </View>
+      </Animated.View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.searchContainer}>
           <View style={styles.searchBar}>
               <Ionicons name="search" size={20} color={THEME.textSecondary} style={styles.searchIcon} />
               <TextInput
@@ -244,7 +247,7 @@ export default function Index() {
                   </TouchableOpacity>
               )}
           </View>
-      </View>
+      </Animated.View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Mis Flujos</Text>
@@ -309,6 +312,7 @@ export default function Index() {
       {/* Floating Menu */}
       <View style={styles.floatingMenuContainer}>
         <BlurView intensity={80} tint="dark" style={styles.floatingMenu}>
+             <Animated.View entering={FadeInUp.delay(500)}>
              <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={() => setFilter('all')}
@@ -318,7 +322,9 @@ export default function Index() {
                     <Ionicons name={filter === 'all' ? "home" : "home-outline"} size={22} color={filter === 'all' ? "#000" : "#FFF"} />
                  </View>
              </TouchableOpacity>
+             </Animated.View>
              
+             <Animated.View entering={FadeInUp.delay(600)}>
              <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={() => refetch()}
@@ -328,7 +334,9 @@ export default function Index() {
                     <Ionicons name="refresh" size={22} color={isRefetching ? "#000" : "#FFF"} />
                  </View>
              </TouchableOpacity>
+             </Animated.View>
 
+             <Animated.View entering={FadeInUp.delay(700)}>
              <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={() => router.push({ pathname: '/setup', params: { action: 'add' } })}
@@ -338,7 +346,9 @@ export default function Index() {
                     <Ionicons name="add-circle-outline" size={22} color="#FFF" />
                  </View>
              </TouchableOpacity>
+             </Animated.View>
 
+             <Animated.View entering={FadeInUp.delay(800)}>
              <TouchableOpacity 
                 style={styles.menuItem}
                 onPress={() => router.push('/setup')}
@@ -348,6 +358,7 @@ export default function Index() {
                     <Ionicons name="server-outline" size={22} color="#FFF" />
                  </View>
              </TouchableOpacity>
+             </Animated.View>
         </BlurView>
       </View>
     </View>

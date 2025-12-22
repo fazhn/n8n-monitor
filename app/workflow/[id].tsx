@@ -190,9 +190,7 @@ export default function WorkflowDetail() {
              <Ionicons name="arrow-back" size={24} color={THEME.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>{workflow.name}</Text>
-          <TouchableOpacity onPress={() => {/* Options? */}}>
-             <Ionicons name="ellipsis-horizontal" size={24} color={THEME.textPrimary} />
-          </TouchableOpacity>
+          <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
