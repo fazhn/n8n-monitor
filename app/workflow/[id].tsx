@@ -69,47 +69,44 @@ export default function WorkflowDetail() {
   });
 
   // Filter executions based on status and time
-  const filteredExecutions = executions?.filter(e => {
-    // Status filter
-    if (statusFilter !== 'all' && e.status !== statusFilter) {
-      return false;
-    }
-    
-    // Time filter
-    if (timeFilter !== 'all') {
-      const executionDate = new Date(e.stoppedAt || e.startedAt);
-      const now = new Date();
-      
-      switch (timeFilter) {
-        case '24h':
-          return executionDate >= subHours(now, 24);
-        case '7d':
-          return executionDate >= subDays(now, 7);
-        case '30d':
-          return executionDate >= subDays(now, 30);
+  const filteredExecutions =
+    executions?.filter(e => {
+      // Status filter
+      if (statusFilter !== 'all' && e.status !== statusFilter) {
+        return false;
       }
-    }
-    
-    return true;
-  }) || [];
+
+      // Time filter
+      if (timeFilter !== 'all') {
+        const executionDate = new Date(e.stoppedAt || e.startedAt);
+        const now = new Date();
+
+        switch (timeFilter) {
+          case '24h':
+            return executionDate >= subHours(now, 24);
+          case '7d':
+            return executionDate >= subDays(now, 7);
+          case '30d':
+            return executionDate >= subDays(now, 30);
+        }
+      }
+
+      return true;
+    }) || [];
 
   const successCount = executions?.filter(e => e.status === 'success').length || 0;
   const errorCount = executions?.filter(e => e.status === 'error').length || 0;
   const runningCount = executions?.filter(e => e.status === 'running').length || 0;
 
   const toggleMutation = useMutation({
-    mutationFn: (active: boolean) =>
-      active ? deactivateWorkflow(id!) : activateWorkflow(id!),
+    mutationFn: (active: boolean) => (active ? deactivateWorkflow(id!) : activateWorkflow(id!)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow', id] });
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       refetchWorkflow();
     },
-    onError: (error) => {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'No se pudo cambiar el estado'
-      );
+    onError: error => {
+      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo cambiar el estado');
     },
   });
 
@@ -147,10 +144,7 @@ export default function WorkflowDetail() {
       <View style={styles.centered}>
         <Ionicons name="alert-circle-outline" size={64} color={THEME.error} />
         <Text style={styles.errorText}>No se pudo cargar el flujo</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => refetchWorkflow()}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={() => refetchWorkflow()}>
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -158,11 +152,7 @@ export default function WorkflowDetail() {
   }
 
   const renderExecution = (execution: N8nExecution) => {
-    const executionDate = format(
-      new Date(execution.startedAt),
-      "d MMM, HH:mm",
-      { locale: es }
-    );
+    const executionDate = format(new Date(execution.startedAt), 'd MMM, HH:mm', { locale: es });
 
     const duration = execution.stoppedAt
       ? formatDistanceToNow(new Date(execution.stoppedAt), {
@@ -173,16 +163,16 @@ export default function WorkflowDetail() {
 
     const isSuccess = execution.status === 'success';
     const isError = execution.status === 'error';
-    
-    let iconName: keyof typeof Ionicons.glyphMap = "time-outline";
+
+    let iconName: keyof typeof Ionicons.glyphMap = 'time-outline';
     let statusColor = THEME.textSecondary;
 
     if (isSuccess) {
-        iconName = "checkmark-circle";
-        statusColor = THEME.success;
+      iconName = 'checkmark-circle';
+      statusColor = THEME.success;
     } else if (isError) {
-        iconName = "close-circle";
-        statusColor = THEME.error;
+      iconName = 'close-circle';
+      statusColor = THEME.error;
     }
 
     return (
@@ -194,10 +184,12 @@ export default function WorkflowDetail() {
       >
         <Ionicons name={iconName} size={24} color={statusColor} style={styles.executionIcon} />
         <View style={styles.executionInfo}>
-            <Text style={styles.executionTitle}>
-                {isSuccess ? 'Ejecución exitosa' : isError ? 'Falló la ejecución' : 'En ejecución'}
-            </Text>
-            <Text style={styles.executionDate}>{executionDate} • {duration}</Text>
+          <Text style={styles.executionTitle}>
+            {isSuccess ? 'Ejecución exitosa' : isError ? 'Falló la ejecución' : 'En ejecución'}
+          </Text>
+          <Text style={styles.executionDate}>
+            {executionDate} • {duration}
+          </Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={THEME.textSecondary} />
       </TouchableOpacity>
@@ -207,7 +199,7 @@ export default function WorkflowDetail() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Dynamic Header Background */}
       <LinearGradient
         colors={[workflow.active ? 'rgba(234, 75, 113, 0.6)' : 'rgba(100,100,100, 0.4)', '#121212']}
@@ -217,11 +209,13 @@ export default function WorkflowDetail() {
       />
 
       <View style={styles.headerToolbar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-             <Ionicons name="arrow-back" size={24} color={THEME.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>{workflow.name}</Text>
-          <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={THEME.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {workflow.name}
+        </Text>
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView
@@ -242,80 +236,85 @@ export default function WorkflowDetail() {
       >
         {/* Hero Section */}
         <View style={styles.heroSection}>
-            <View style={styles.artworkPlaceholder}>
-                <Ionicons name="git-network-outline" size={48} color="#FFF" />
+          <View style={styles.artworkPlaceholder}>
+            <Ionicons name="git-network-outline" size={48} color="#FFF" />
+          </View>
+          <Text style={styles.workflowName}>{workflow.name}</Text>
+          <View style={styles.metaRow}>
+            <View
+              style={[styles.statusTag, workflow.active ? styles.tagActive : styles.tagInactive]}
+            >
+              <Text style={styles.statusTagText}>{workflow.active ? 'ACTIVO' : 'PAUSADO'}</Text>
             </View>
-            <Text style={styles.workflowName}>{workflow.name}</Text>
-            <View style={styles.metaRow}>
-                <View style={[styles.statusTag, workflow.active ? styles.tagActive : styles.tagInactive]}>
-                    <Text style={styles.statusTagText}>{workflow.active ? 'ACTIVO' : 'PAUSADO'}</Text>
-                </View>
-                <Text style={styles.updatedText}>
-                    Actualizado {formatDistanceToNow(new Date(workflow.updatedAt), { addSuffix: true, locale: es })}
-                </Text>
-            </View>
+            <Text style={styles.updatedText}>
+              Actualizado{' '}
+              {formatDistanceToNow(new Date(workflow.updatedAt), { addSuffix: true, locale: es })}
+            </Text>
+          </View>
 
-            {/* Tags */}
-             {workflow.tags && workflow.tags.length > 0 && (
-                <View style={styles.tagsContainer}>
-                {workflow.tags.map((tag) => (
-                    <View key={tag.id} style={styles.tagPill}>
-                    <Text style={styles.tagText}>{tag.name}</Text>
-                    </View>
-                ))}
+          {/* Tags */}
+          {workflow.tags && workflow.tags.length > 0 && (
+            <View style={styles.tagsContainer}>
+              {workflow.tags.map(tag => (
+                <View key={tag.id} style={styles.tagPill}>
+                  <Text style={styles.tagText}>{tag.name}</Text>
                 </View>
-            )}
+              ))}
+            </View>
+          )}
 
-            {/* Action Buttons */}
-            <View style={styles.actionRow}>
-                <View style={styles.actionButtonContainer}>
-                    <TouchableOpacity
-                        style={[
-                            styles.playButton,
-                            !workflow.active && styles.playButtonInactive,
-                            (workflow.nodes?.length || 0) === 0 && styles.playButtonDisabled
-                        ]}
-                        onPress={handleToggleActive}
-                        disabled={toggleMutation.isPending || (workflow.nodes?.length || 0) === 0}
-                    >
-                        {toggleMutation.isPending ? (
-                            <ActivityIndicator color={workflow.active ? "#000" : "#FFF"} />
-                        ) : (
-                            <Ionicons
-                                name={workflow.active ? "pause" : "play"}
-                                size={32}
-                                color={(workflow.nodes?.length || 0) === 0 ? THEME.textSecondary : "#000"}
-                            />
-                        )}
-                    </TouchableOpacity>
-                    {(workflow.nodes?.length || 0) === 0 && (
-                        <Text style={styles.disabledText}>El workflow necesita al menos un nodo</Text>
-                    )}
-                </View>
+          {/* Action Buttons */}
+          <View style={styles.actionRow}>
+            <View style={styles.actionButtonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.playButton,
+                  !workflow.active && styles.playButtonInactive,
+                  (workflow.nodes?.length || 0) === 0 && styles.playButtonDisabled,
+                ]}
+                onPress={handleToggleActive}
+                disabled={toggleMutation.isPending || (workflow.nodes?.length || 0) === 0}
+              >
+                {toggleMutation.isPending ? (
+                  <ActivityIndicator color={workflow.active ? '#000' : '#FFF'} />
+                ) : (
+                  <Ionicons
+                    name={workflow.active ? 'pause' : 'play'}
+                    size={32}
+                    color={(workflow.nodes?.length || 0) === 0 ? THEME.textSecondary : '#000'}
+                  />
+                )}
+              </TouchableOpacity>
+              {(workflow.nodes?.length || 0) === 0 && (
+                <Text style={styles.disabledText}>El workflow necesita al menos un nodo</Text>
+              )}
             </View>
-            {/* Simple Stats Row */}
-            <View style={styles.statsContainer}>
-               <View style={styles.statItem}>
-                   <Text style={[styles.statValue, { color: THEME.success }]}>{successCount}</Text>
-                   <Text style={styles.statLabel}>Exitosas</Text>
-               </View>
-               <View style={styles.statDivider} />
-               <View style={styles.statItem}>
-                   <Text style={[styles.statValue, { color: THEME.error }]}>{errorCount}</Text>
-                   <Text style={styles.statLabel}>Errores</Text>
-               </View>
-               <View style={styles.statDivider} />
-               <View style={styles.statItem}>
-                   <Text style={[styles.statValue, { color: THEME.textPrimary }]}>{workflow.nodes?.length || 0}</Text>
-                   <Text style={styles.statLabel}>Nodos</Text>
-               </View>
+          </View>
+          {/* Simple Stats Row */}
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: THEME.success }]}>{successCount}</Text>
+              <Text style={styles.statLabel}>Exitosas</Text>
             </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: THEME.error }]}>{errorCount}</Text>
+              <Text style={styles.statLabel}>Errores</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: THEME.textPrimary }]}>
+                {workflow.nodes?.length || 0}
+              </Text>
+              <Text style={styles.statLabel}>Nodos</Text>
+            </View>
+          </View>
         </View>
 
         {/* Executions List */}
         <View style={styles.executionsSection}>
           <Text style={styles.sectionTitle}>Historial de Ejecuciones</Text>
-          
+
           {executionsLoading ? (
             <ActivityIndicator size="small" color={THEME.accent} style={{ marginTop: 20 }} />
           ) : executions && executions.length > 0 ? (
@@ -330,7 +329,8 @@ export default function WorkflowDetail() {
                   </View>
                   <View style={styles.filterBadge}>
                     <Text style={styles.filterBadgeText}>
-                      {filteredExecutions.length} resultado{filteredExecutions.length !== 1 ? 's' : ''}
+                      {filteredExecutions.length} resultado
+                      {filteredExecutions.length !== 1 ? 's' : ''}
                     </Text>
                   </View>
                 </View>
@@ -341,99 +341,174 @@ export default function WorkflowDetail() {
                     <Ionicons name="pulse-outline" size={14} color={THEME.textSecondary} /> Estado
                   </Text>
                   <View style={styles.segmentedControl}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[
-                        styles.segmentedButton, 
+                        styles.segmentedButton,
                         styles.segmentedButtonFirst,
-                        statusFilter === 'all' && styles.segmentedButtonActive
+                        statusFilter === 'all' && styles.segmentedButtonActive,
                       ]}
                       onPress={() => {
                         setStatusFilter('all');
                         setCurrentPage(1);
                       }}
                     >
-                      <Text style={[styles.segmentedButtonText, statusFilter === 'all' && styles.segmentedButtonTextActive]}>
+                      <Text
+                        style={[
+                          styles.segmentedButtonText,
+                          statusFilter === 'all' && styles.segmentedButtonTextActive,
+                        ]}
+                      >
                         Todos
                       </Text>
-                      <View style={[styles.segmentedBadge, statusFilter === 'all' && styles.segmentedBadgeActive]}>
-                        <Text style={[styles.segmentedBadgeText, statusFilter === 'all' && styles.segmentedBadgeTextActive]}>
+                      <View
+                        style={[
+                          styles.segmentedBadge,
+                          statusFilter === 'all' && styles.segmentedBadgeActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentedBadgeText,
+                            statusFilter === 'all' && styles.segmentedBadgeTextActive,
+                          ]}
+                        >
                           {executions?.length || 0}
                         </Text>
                       </View>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[
                         styles.segmentedButton,
-                        statusFilter === 'success' && styles.segmentedButtonSuccess
+                        statusFilter === 'success' && styles.segmentedButtonSuccess,
                       ]}
                       onPress={() => {
                         setStatusFilter('success');
                         setCurrentPage(1);
                       }}
                     >
-                      <Ionicons 
-                        name="checkmark-circle" 
-                        size={14} 
-                        color={statusFilter === 'success' ? '#FFF' : THEME.success} 
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={14}
+                        color={statusFilter === 'success' ? '#FFF' : THEME.success}
                       />
-                      <Text style={[styles.segmentedButtonText, statusFilter === 'success' && styles.segmentedButtonTextActive]}>
+                      <Text
+                        style={[
+                          styles.segmentedButtonText,
+                          statusFilter === 'success' && styles.segmentedButtonTextActive,
+                        ]}
+                      >
                         Éxito
                       </Text>
-                      <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'success' ? 'rgba(255,255,255,0.2)' : 'rgba(34,197,94,0.2)' }]}>
-                        <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'success' ? '#FFF' : THEME.success }]}>
+                      <View
+                        style={[
+                          styles.segmentedBadge,
+                          {
+                            backgroundColor:
+                              statusFilter === 'success'
+                                ? 'rgba(255,255,255,0.2)'
+                                : 'rgba(34,197,94,0.2)',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentedBadgeText,
+                            { color: statusFilter === 'success' ? '#FFF' : THEME.success },
+                          ]}
+                        >
                           {successCount}
                         </Text>
                       </View>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[
                         styles.segmentedButton,
-                        statusFilter === 'error' && styles.segmentedButtonError
+                        statusFilter === 'error' && styles.segmentedButtonError,
                       ]}
                       onPress={() => {
                         setStatusFilter('error');
                         setCurrentPage(1);
                       }}
                     >
-                      <Ionicons 
-                        name="close-circle" 
-                        size={14} 
-                        color={statusFilter === 'error' ? '#FFF' : THEME.error} 
+                      <Ionicons
+                        name="close-circle"
+                        size={14}
+                        color={statusFilter === 'error' ? '#FFF' : THEME.error}
                       />
-                      <Text style={[styles.segmentedButtonText, statusFilter === 'error' && styles.segmentedButtonTextActive]}>
+                      <Text
+                        style={[
+                          styles.segmentedButtonText,
+                          statusFilter === 'error' && styles.segmentedButtonTextActive,
+                        ]}
+                      >
                         Error
                       </Text>
-                      <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'error' ? 'rgba(255,255,255,0.2)' : 'rgba(255,82,82,0.2)' }]}>
-                        <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'error' ? '#FFF' : THEME.error }]}>
+                      <View
+                        style={[
+                          styles.segmentedBadge,
+                          {
+                            backgroundColor:
+                              statusFilter === 'error'
+                                ? 'rgba(255,255,255,0.2)'
+                                : 'rgba(255,82,82,0.2)',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.segmentedBadgeText,
+                            { color: statusFilter === 'error' ? '#FFF' : THEME.error },
+                          ]}
+                        >
                           {errorCount}
                         </Text>
                       </View>
                     </TouchableOpacity>
-                    
+
                     {runningCount > 0 && (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[
                           styles.segmentedButton,
                           styles.segmentedButtonLast,
-                          statusFilter === 'running' && styles.segmentedButtonRunning
+                          statusFilter === 'running' && styles.segmentedButtonRunning,
                         ]}
                         onPress={() => {
                           setStatusFilter('running');
                           setCurrentPage(1);
                         }}
                       >
-                        <Ionicons 
-                          name="hourglass-outline" 
-                          size={14} 
-                          color={statusFilter === 'running' ? '#FFF' : '#FFA500'} 
+                        <Ionicons
+                          name="hourglass-outline"
+                          size={14}
+                          color={statusFilter === 'running' ? '#FFF' : '#FFA500'}
                         />
-                        <Text style={[styles.segmentedButtonText, statusFilter === 'running' && styles.segmentedButtonTextActive]}>
+                        <Text
+                          style={[
+                            styles.segmentedButtonText,
+                            statusFilter === 'running' && styles.segmentedButtonTextActive,
+                          ]}
+                        >
                           Activo
                         </Text>
-                        <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'running' ? 'rgba(255,255,255,0.2)' : 'rgba(255,165,0,0.2)' }]}>
-                          <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'running' ? '#FFF' : '#FFA500' }]}>
+                        <View
+                          style={[
+                            styles.segmentedBadge,
+                            {
+                              backgroundColor:
+                                statusFilter === 'running'
+                                  ? 'rgba(255,255,255,0.2)'
+                                  : 'rgba(255,165,0,0.2)',
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.segmentedBadgeText,
+                              { color: statusFilter === 'running' ? '#FFF' : '#FFA500' },
+                            ]}
+                          >
                             {runningCount}
                           </Text>
                         </View>
@@ -448,55 +523,75 @@ export default function WorkflowDetail() {
                     <Ionicons name="time-outline" size={14} color={THEME.textSecondary} /> Período
                   </Text>
                   <View style={styles.timeFilterRow}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.timePill, timeFilter === 'all' && styles.timePillActive]}
                       onPress={() => {
                         setTimeFilter('all');
                         setCurrentPage(1);
                       }}
                     >
-                      <Ionicons 
-                        name="infinite-outline" 
-                        size={16} 
-                        color={timeFilter === 'all' ? '#000' : THEME.textSecondary} 
+                      <Ionicons
+                        name="infinite-outline"
+                        size={16}
+                        color={timeFilter === 'all' ? '#000' : THEME.textSecondary}
                       />
-                      <Text style={[styles.timePillText, timeFilter === 'all' && styles.timePillTextActive]}>
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          timeFilter === 'all' && styles.timePillTextActive,
+                        ]}
+                      >
                         Todo
                       </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.timePill, timeFilter === '24h' && styles.timePillActive]}
                       onPress={() => {
                         setTimeFilter('24h');
                         setCurrentPage(1);
                       }}
                     >
-                      <Text style={[styles.timePillText, timeFilter === '24h' && styles.timePillTextActive]}>
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          timeFilter === '24h' && styles.timePillTextActive,
+                        ]}
+                      >
                         24h
                       </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.timePill, timeFilter === '7d' && styles.timePillActive]}
                       onPress={() => {
                         setTimeFilter('7d');
                         setCurrentPage(1);
                       }}
                     >
-                      <Text style={[styles.timePillText, timeFilter === '7d' && styles.timePillTextActive]}>
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          timeFilter === '7d' && styles.timePillTextActive,
+                        ]}
+                      >
                         7 días
                       </Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.timePill, timeFilter === '30d' && styles.timePillActive]}
                       onPress={() => {
                         setTimeFilter('30d');
                         setCurrentPage(1);
                       }}
                     >
-                      <Text style={[styles.timePillText, timeFilter === '30d' && styles.timePillTextActive]}>
+                      <Text
+                        style={[
+                          styles.timePillText,
+                          timeFilter === '30d' && styles.timePillTextActive,
+                        ]}
+                      >
                         30 días
                       </Text>
                     </TouchableOpacity>
@@ -511,40 +606,84 @@ export default function WorkflowDetail() {
                       .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
                       .map(renderExecution)}
                   </View>
-              
-              {/* Pagination Controls */}
-              {filteredExecutions.length > ITEMS_PER_PAGE && (
-                <View style={styles.paginationContainer}>
-                  <TouchableOpacity 
-                    style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-                    onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? THEME.textSecondary : THEME.textPrimary} />
-                    <Text style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>Anterior</Text>
-                  </TouchableOpacity>
-                  
-                  <View style={styles.paginationInfo}>
-                    <Text style={styles.paginationText}>
-                      Página {currentPage} de {Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)}
-                    </Text>
-                  </View>
-                  
-                  <TouchableOpacity 
-                    style={[styles.paginationButton, currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) && styles.paginationButtonDisabled]}
-                    onPress={() => setCurrentPage(prev => Math.min(Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE), prev + 1))}
-                    disabled={currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)}
-                  >
-                    <Text style={[styles.paginationButtonText, currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) && styles.paginationButtonTextDisabled]}>Siguiente</Text>
-                    <Ionicons name="chevron-forward" size={20} color={currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) ? THEME.textSecondary : THEME.textPrimary} />
-                  </TouchableOpacity>
-                </View>
-              )}
+
+                  {/* Pagination Controls */}
+                  {filteredExecutions.length > ITEMS_PER_PAGE && (
+                    <View style={styles.paginationContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.paginationButton,
+                          currentPage === 1 && styles.paginationButtonDisabled,
+                        ]}
+                        onPress={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <Ionicons
+                          name="chevron-back"
+                          size={20}
+                          color={currentPage === 1 ? THEME.textSecondary : THEME.textPrimary}
+                        />
+                        <Text
+                          style={[
+                            styles.paginationButtonText,
+                            currentPage === 1 && styles.paginationButtonTextDisabled,
+                          ]}
+                        >
+                          Anterior
+                        </Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.paginationInfo}>
+                        <Text style={styles.paginationText}>
+                          Página {currentPage} de{' '}
+                          {Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.paginationButton,
+                          currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) &&
+                            styles.paginationButtonDisabled,
+                        ]}
+                        onPress={() =>
+                          setCurrentPage(prev =>
+                            Math.min(
+                              Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE),
+                              prev + 1
+                            )
+                          )
+                        }
+                        disabled={
+                          currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.paginationButtonText,
+                            currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE) &&
+                              styles.paginationButtonTextDisabled,
+                          ]}
+                        >
+                          Siguiente
+                        </Text>
+                        <Ionicons
+                          name="chevron-forward"
+                          size={20}
+                          color={
+                            currentPage === Math.ceil(filteredExecutions.length / ITEMS_PER_PAGE)
+                              ? THEME.textSecondary
+                              : THEME.textPrimary
+                          }
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </>
               ) : (
                 <Text style={styles.emptyText}>
-                  {statusFilter === 'all' && timeFilter === 'all' 
-                    ? 'No hay ejecuciones recientes.' 
+                  {statusFilter === 'all' && timeFilter === 'all'
+                    ? 'No hay ejecuciones recientes.'
                     : 'No hay ejecuciones que coincidan con los filtros seleccionados.'}
                 </Text>
               )}
@@ -580,47 +719,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 30,
     paddingHorizontal: 16,
     paddingBottom: 10,
     zIndex: 10,
   },
   backButton: {
-      padding: 4,
+    padding: 4,
   },
   headerTitle: {
-      color: THEME.textPrimary,
-      fontSize: 16,
-      fontWeight: '600',
-      opacity: 0, // Hidden initially, could animate in on scroll
+    color: THEME.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0, // Hidden initially, could animate in on scroll
   },
   content: {
     flex: 1,
   },
   scrollContent: {
-      paddingBottom: 40,
+    paddingBottom: 40,
   },
   heroSection: {
-      alignItems: 'center',
-      paddingTop: 20,
-      paddingHorizontal: 24,
-      marginBottom: 32,
+    alignItems: 'center',
+    paddingTop: 5,
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
   artworkPlaceholder: {
-      width: 120,
-      height: 120,
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: "#000",
-      shadowOffset: {
-          width: 0,
-          height: 12,
-      },
-      shadowOpacity: 0.58,
-      shadowRadius: 16.00,
-      elevation: 24,
-      marginBottom: 20,
+    width: 120,
+    height: 120,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 12,
+    },
+    shadowOpacity: 0.58,
+    shadowRadius: 16.0,
+    elevation: 24,
+    marginBottom: 20,
   },
   workflowName: {
     fontSize: 24,
@@ -630,150 +769,150 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
   },
   statusTag: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   tagActive: {
-      backgroundColor: THEME.success,
+    backgroundColor: THEME.success,
   },
   tagInactive: {
-      backgroundColor: THEME.surfaceHighlight,
+    backgroundColor: THEME.surfaceHighlight,
   },
   statusTagText: {
-      fontSize: 10,
-      fontWeight: 'bold',
-      color: '#000',
-      letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
+    letterSpacing: 0.5,
   },
   updatedText: {
-      color: THEME.textSecondary,
-      fontSize: 13,
+    color: THEME.textSecondary,
+    fontSize: 13,
   },
   tagsContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      gap: 8,
-      marginBottom: 24,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
   },
   tagPill: {
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.3)',
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   tagText: {
-      color: THEME.textPrimary,
-      fontSize: 12,
+    color: THEME.textPrimary,
+    fontSize: 12,
   },
   actionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   actionButtonContainer: {
-      alignItems: 'center',
+    alignItems: 'center',
   },
   playButton: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: THEME.success, // Changed to Green
-      justifyContent: 'center',
-      alignItems: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: THEME.success, // Changed to Green
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   playButtonInactive: {
-      backgroundColor: '#FFFFFF', // White when inactive (play action)? Or maybe Grey? Spotify uses Green always for the main action usually.
-      // Left as green for consistency, but maybe White for "Start".
+    backgroundColor: '#FFFFFF', // White when inactive (play action)? Or maybe Grey? Spotify uses Green always for the main action usually.
+    // Left as green for consistency, but maybe White for "Start".
   },
   playButtonDisabled: {
-      backgroundColor: THEME.surfaceHighlight,
-      opacity: 0.5,
+    backgroundColor: THEME.surfaceHighlight,
+    opacity: 0.5,
   },
   disabledText: {
-      color: THEME.textSecondary,
-      fontSize: 12,
-      textAlign: 'center',
-      marginTop: 8,
+    color: THEME.textSecondary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
   },
   statsContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 24,
-      backgroundColor: 'rgba(255,255,255,0.05)',
-      borderRadius: 12,
-      paddingVertical: 12,
-      paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
   },
   statItem: {
-      alignItems: 'center',
-      paddingHorizontal: 16,
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   statDivider: {
-      width: 1,
-      height: 24,
-      backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   statValue: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 2,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 2,
   },
   statLabel: {
-      fontSize: 12,
-      color: THEME.textSecondary,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
+    fontSize: 12,
+    color: THEME.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   executionsSection: {
-      paddingHorizontal: 16,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: THEME.textPrimary,
-      marginBottom: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginBottom: 16,
   },
   executionsList: {
-      gap: 0, // List items usually flush or small gap
+    gap: 0, // List items usually flush or small gap
   },
   executionRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   executionIcon: {
-      marginRight: 16,
+    marginRight: 16,
   },
   executionInfo: {
-      flex: 1,
+    flex: 1,
   },
   executionTitle: {
-      color: THEME.textPrimary,
-      fontSize: 15,
-      fontWeight: '500',
-      marginBottom: 4,
+    color: THEME.textPrimary,
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   executionDate: {
-      color: THEME.textSecondary,
-      fontSize: 13,
+    color: THEME.textSecondary,
+    fontSize: 13,
   },
   emptyText: {
-      color: THEME.textSecondary,
-      textAlign: 'center',
-      marginTop: 20,
+    color: THEME.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
   },
   errorText: {
     color: THEME.textPrimary,
@@ -781,12 +920,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-      padding: 12,
-      backgroundColor: THEME.surfaceHighlight,
-      borderRadius: 8,
+    padding: 12,
+    backgroundColor: THEME.surfaceHighlight,
+    borderRadius: 8,
   },
   retryButtonText: {
-      color: THEME.textPrimary,
+    color: THEME.textPrimary,
   },
   paginationContainer: {
     flexDirection: 'row',

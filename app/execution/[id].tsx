@@ -4,7 +4,15 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import { getExecution } from '@/services/n8n-api';
 
@@ -63,20 +71,28 @@ export default function ExecutionDetail() {
   const errorInfo = execution.data?.resultData?.error;
 
   const getStatusIconName = () => {
-      switch(execution.status) {
-          case 'success': return 'checkmark-circle';
-          case 'error': return 'close-circle';
-          case 'waiting': return 'time';
-          default: return 'ellipse';
-      }
+    switch (execution.status) {
+      case 'success':
+        return 'checkmark-circle';
+      case 'error':
+        return 'close-circle';
+      case 'waiting':
+        return 'time';
+      default:
+        return 'ellipse';
+    }
   };
 
   const getStatusColor = () => {
-    switch(execution.status) {
-        case 'success': return THEME.success;
-        case 'error': return THEME.error;
-        case 'waiting': return '#f59e0b';
-        default: return THEME.textSecondary;
+    switch (execution.status) {
+      case 'success':
+        return THEME.success;
+      case 'error':
+        return THEME.error;
+      case 'waiting':
+        return '#f59e0b';
+      default:
+        return THEME.textSecondary;
     }
   };
 
@@ -84,7 +100,14 @@ export default function ExecutionDetail() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={[hasError ? 'rgba(255, 82, 82, 0.4)' : execution.status === 'success' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(234, 75, 113, 0.4)', THEME.background]}
+        colors={[
+          hasError
+            ? 'rgba(255, 82, 82, 0.4)'
+            : execution.status === 'success'
+            ? 'rgba(34, 197, 94, 0.4)'
+            : 'rgba(234, 75, 113, 0.4)',
+          THEME.background,
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 0.6 }}
         style={styles.headerGradient}
@@ -98,16 +121,19 @@ export default function ExecutionDetail() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 40 }}>
-        
         {/* Title Section */}
         <View style={styles.titleSection}>
-             <Ionicons name={getStatusIconName()} size={48} color={getStatusColor()} />
-             <Text style={styles.screenTitle}>
-                 {execution.status === 'success' ? 'Ejecución Exitosa' : hasError ? 'Error en Ejecución' : 'Ejecución en curso'}
-             </Text>
-             <Text style={styles.subTitle}>
-                 {format(new Date(execution.startedAt), "d 'de' MMMM, HH:mm:ss", { locale: es })}
-             </Text>
+          <Ionicons name={getStatusIconName()} size={48} color={getStatusColor()} />
+          <Text style={styles.screenTitle}>
+            {execution.status === 'success'
+              ? 'Ejecución Exitosa'
+              : hasError
+              ? 'Error en Ejecución'
+              : 'Ejecución en curso'}
+          </Text>
+          <Text style={styles.subTitle}>
+            {format(new Date(execution.startedAt), "d 'de' MMMM, HH:mm:ss", { locale: es })}
+          </Text>
         </View>
 
         {/* Info Grid */}
@@ -115,7 +141,9 @@ export default function ExecutionDetail() {
           <Text style={styles.sectionHeader}>DETALLES</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>ID</Text>
-            <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="middle">{execution.id}</Text>
+            <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="middle">
+              {execution.id}
+            </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Workflow</Text>
@@ -123,14 +151,16 @@ export default function ExecutionDetail() {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Modo</Text>
-            <Text style={styles.infoValue}>{execution.mode === 'manual' ? 'Manual' : 'Automático'}</Text>
+            <Text style={styles.infoValue}>
+              {execution.mode === 'manual' ? 'Manual' : 'Automático'}
+            </Text>
           </View>
           {execution.stoppedAt && (
             <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Fin</Text>
-                <Text style={styles.infoValue}>
-                    {format(new Date(execution.stoppedAt), "HH:mm:ss", { locale: es })}
-                </Text>
+              <Text style={styles.infoLabel}>Fin</Text>
+              <Text style={styles.infoValue}>
+                {format(new Date(execution.stoppedAt), 'HH:mm:ss', { locale: es })}
+              </Text>
             </View>
           )}
         </View>
@@ -140,61 +170,67 @@ export default function ExecutionDetail() {
           <View style={[styles.cardContainer, styles.errorCard]}>
             <Text style={[styles.sectionHeader, { color: THEME.error }]}>ERROR</Text>
             <View style={styles.errorContent}>
-                {errorInfo?.node && (
-                    <View style={styles.errorBlock}>
-                        <Text style={styles.errorLabel}>Nodo</Text>
-                        <Text style={styles.errorValue}>{errorInfo.node.name} ({errorInfo.node.type})</Text>
-                    </View>
-                )}
-                {errorInfo?.message && (
-                    <View style={styles.errorBlock}>
-                        <Text style={styles.errorLabel}>Mensaje</Text>
-                        <Text style={styles.errorMessage}>{errorInfo.message}</Text>
-                    </View>
-                )}
-                {errorInfo?.stack && (
-                    <View style={styles.codeBlock}>
-                        <Text style={styles.codeText}>{errorInfo.stack.split('\n').slice(0, 3).join('\n')}...</Text>
-                    </View>
-                )}
+              {errorInfo?.node && (
+                <View style={styles.errorBlock}>
+                  <Text style={styles.errorLabel}>Nodo</Text>
+                  <Text style={styles.errorValue}>
+                    {errorInfo.node.name} ({errorInfo.node.type})
+                  </Text>
+                </View>
+              )}
+              {errorInfo?.message && (
+                <View style={styles.errorBlock}>
+                  <Text style={styles.errorLabel}>Mensaje</Text>
+                  <Text style={styles.errorMessage}>{errorInfo.message}</Text>
+                </View>
+              )}
+              {errorInfo?.stack && (
+                <View style={styles.codeBlock}>
+                  <Text style={styles.codeText}>
+                    {errorInfo.stack.split('\n').slice(0, 3).join('\n')}...
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         )}
 
         {/* Flow Section */}
         <View style={styles.cardContainer}>
-            <Text style={styles.sectionHeader}>FLUJO</Text>
-            
-            {execution.data?.resultData?.runData && Object.entries(execution.data.resultData.runData).map(([nodeName, nodeData], index) => (
-                <View key={nodeName} style={styles.flowItem}>
-                    <View style={styles.timelineContainer}>
-                        <View style={[styles.timelineDot, { backgroundColor: THEME.success }]} />
-                        <View style={styles.timelineLine} />
-                    </View>
-                    <View style={styles.flowContent}>
-                        <Text style={styles.flowNodeName}>{nodeName}</Text>
-                        <Text style={styles.flowMeta}>Procesado correctamente</Text>
-                    </View>
+          <Text style={styles.sectionHeader}>FLUJO</Text>
+
+          {execution.data?.resultData?.runData &&
+            Object.entries(execution.data.resultData.runData).map(([nodeName, nodeData], index) => (
+              <View key={nodeName} style={styles.flowItem}>
+                <View style={styles.timelineContainer}>
+                  <View style={[styles.timelineDot, { backgroundColor: THEME.success }]} />
+                  <View style={styles.timelineLine} />
                 </View>
+                <View style={styles.flowContent}>
+                  <Text style={styles.flowNodeName}>{nodeName}</Text>
+                  <Text style={styles.flowMeta}>Procesado correctamente</Text>
+                </View>
+              </View>
             ))}
 
-            {hasError && errorInfo?.node && (
-                <View style={styles.flowItem}>
-                    <View style={styles.timelineContainer}>
-                        <View style={[styles.timelineDot, { backgroundColor: THEME.error }]} />
-                    </View>
-                     <View style={styles.flowContent}>
-                        <Text style={[styles.flowNodeName, { color: THEME.error }]}>{errorInfo.node.name}</Text>
-                        <Text style={styles.flowMeta}>Fallo en la ejecución</Text>
-                    </View>
-                </View>
-            )}
+          {hasError && errorInfo?.node && (
+            <View style={styles.flowItem}>
+              <View style={styles.timelineContainer}>
+                <View style={[styles.timelineDot, { backgroundColor: THEME.error }]} />
+              </View>
+              <View style={styles.flowContent}>
+                <Text style={[styles.flowNodeName, { color: THEME.error }]}>
+                  {errorInfo.node.name}
+                </Text>
+                <Text style={styles.flowMeta}>Fallo en la ejecución</Text>
+              </View>
+            </View>
+          )}
 
-             {!execution.data?.resultData?.runData && !hasError && (
-                 <Text style={styles.emptyText}>No hay datos de flujo disponibles.</Text>
-             )}
+          {!execution.data?.resultData?.runData && !hasError && (
+            <Text style={styles.emptyText}>No hay datos de flujo disponibles.</Text>
+          )}
         </View>
-
       </ScrollView>
     </View>
   );
@@ -219,7 +255,7 @@ const styles = StyleSheet.create({
     height: 300,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: 30,
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
@@ -238,149 +274,149 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   titleSection: {
-      alignItems: 'center',
-      marginBottom: 32,
+    alignItems: 'center',
+    marginBottom: 32,
   },
   screenTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: THEME.textPrimary,
-      marginTop: 16,
-      marginBottom: 4,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginTop: 16,
+    marginBottom: 4,
   },
   subTitle: {
-      fontSize: 14,
-      color: THEME.textSecondary,
+    fontSize: 14,
+    color: THEME.textSecondary,
   },
   cardContainer: {
-      backgroundColor: THEME.surface,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
+    backgroundColor: THEME.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
   errorCard: {
-      borderLeftWidth: 4,
-      borderLeftColor: THEME.error,
+    borderLeftWidth: 4,
+    borderLeftColor: THEME.error,
   },
   sectionHeader: {
-      fontSize: 12,
-      fontWeight: 'bold',
-      color: THEME.textSecondary,
-      marginBottom: 16,
-      letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: THEME.textSecondary,
+    marginBottom: 16,
+    letterSpacing: 1,
   },
   infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: 'rgba(255,255,255,0.1)',
-      paddingBottom: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+    paddingBottom: 4,
   },
   infoLabel: {
-      color: THEME.textSecondary,
-      fontSize: 14,
+    color: THEME.textSecondary,
+    fontSize: 14,
   },
   infoValue: {
-      color: THEME.textPrimary,
-      fontSize: 14,
-      fontWeight: '500',
-      maxWidth: '60%',
-      textAlign: 'right',
+    color: THEME.textPrimary,
+    fontSize: 14,
+    fontWeight: '500',
+    maxWidth: '60%',
+    textAlign: 'right',
   },
   errorContent: {
-      gap: 12,
+    gap: 12,
   },
   errorBlock: {
-      marginBottom: 8,
+    marginBottom: 8,
   },
   errorLabel: {
-      color: THEME.textSecondary,
-      fontSize: 12,
-      marginBottom: 2,
+    color: THEME.textSecondary,
+    fontSize: 12,
+    marginBottom: 2,
   },
   errorValue: {
-      color: THEME.textPrimary,
-      fontWeight: '600',
+    color: THEME.textPrimary,
+    fontWeight: '600',
   },
   errorMessage: {
-      color: THEME.error,
-      fontWeight: '500',
+    color: THEME.error,
+    fontWeight: '500',
   },
   codeBlock: {
-      backgroundColor: 'rgba(0,0,0,0.3)',
-      padding: 12,
-      borderRadius: 8,
-      marginTop: 8,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
   },
   codeText: {
-      fontFamily: 'Courier', // or monospace
-      color: THEME.textSecondary,
-      fontSize: 12,
+    fontFamily: 'Courier', // or monospace
+    color: THEME.textSecondary,
+    fontSize: 12,
   },
   flowItem: {
-      flexDirection: 'row',
-      minHeight: 40,
+    flexDirection: 'row',
+    minHeight: 40,
   },
   timelineContainer: {
-      width: 20,
-      alignItems: 'center',
-      marginRight: 12,
+    width: 20,
+    alignItems: 'center',
+    marginRight: 12,
   },
   timelineDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      marginTop: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 6,
   },
   timelineLine: {
-      width: 2,
-      flex: 1,
-      backgroundColor: 'rgba(255,255,255,0.1)',
-      marginTop: 4,
+    width: 2,
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginTop: 4,
   },
   flowContent: {
-      flex: 1,
-      paddingBottom: 24,
+    flex: 1,
+    paddingBottom: 24,
   },
   flowNodeName: {
-      color: THEME.textPrimary,
-      fontWeight: '600',
-      fontSize: 16,
+    color: THEME.textPrimary,
+    fontWeight: '600',
+    fontSize: 16,
   },
   flowMeta: {
-      color: THEME.textSecondary,
-      fontSize: 12,
-      marginTop: 2,
+    color: THEME.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
   },
   emptyText: {
-      color: THEME.textSecondary,
-      fontStyle: 'italic',
+    color: THEME.textSecondary,
+    fontStyle: 'italic',
   },
   loadingText: {
-      color: THEME.textSecondary,
-      marginTop: 16,
+    color: THEME.textSecondary,
+    marginTop: 16,
   },
   errorTitle: {
-      color: THEME.error,
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginTop: 16,
+    color: THEME.error,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 16,
   },
   errorText: {
-      color: THEME.textSecondary,
-      textAlign: 'center',
-      marginTop: 8,
-      marginBottom: 20,
+    color: THEME.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
   },
   retryButton: {
-      backgroundColor: THEME.surfaceHighlight,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 20,
+    backgroundColor: THEME.surfaceHighlight,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
   },
   retryButtonText: {
-      color: THEME.textPrimary,
-      fontWeight: '600',
+    color: THEME.textPrimary,
+    fontWeight: '600',
   },
 });
