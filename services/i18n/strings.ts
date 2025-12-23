@@ -61,6 +61,11 @@ export const translations = {
     retry: 'Reintentar',
     updated: 'Actualizado',
     paused: 'PAUSADO',
+    editWorkflow: 'Editar Workflow',
+    workflowName: 'Nombre del Workflow',
+    workflowNamePlaceholder: 'Ingresa el nombre del workflow',
+    saveChanges: 'Guardar Cambios',
+    workflowUpdated: 'Workflow actualizado correctamente',
 
     // Settings
     language: 'Idioma',
@@ -127,6 +132,11 @@ export const translations = {
     retry: 'Retry',
     updated: 'Updated',
     paused: 'PAUSED',
+    editWorkflow: 'Edit Workflow',
+    workflowName: 'Workflow Name',
+    workflowNamePlaceholder: 'Enter workflow name',
+    saveChanges: 'Save Changes',
+    workflowUpdated: 'Workflow updated successfully',
 
     // Settings
     language: 'Language',

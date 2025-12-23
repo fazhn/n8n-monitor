@@ -8,11 +8,13 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -22,8 +24,10 @@ import {
   deactivateWorkflow,
   getExecutions,
   getWorkflow,
+  updateWorkflow,
 } from '@/services/n8n-api';
 import { N8nExecution } from '@/types/n8n';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Spotify-inspired Theme Constants (Shared)
 const THEME = {
@@ -41,9 +45,12 @@ export default function WorkflowDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'error' | 'running'>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editedName, setEditedName] = useState('');
   const ITEMS_PER_PAGE = 10;
 
   const {
@@ -110,6 +117,23 @@ export default function WorkflowDetail() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (updates: { name?: string }) => {
+      if (!workflow) throw new Error('Workflow not loaded');
+      return updateWorkflow(id!, workflow, updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
+      queryClient.invalidateQueries({ queryKey: ['workflows'] });
+      refetchWorkflow();
+      setEditModalVisible(false);
+      Alert.alert(t.save, t.workflowUpdated);
+    },
+    onError: error => {
+      Alert.alert(t.error, error instanceof Error ? error.message : 'No se pudo actualizar el workflow');
+    },
+  });
+
   const handleToggleActive = () => {
     if (!workflow) return;
 
@@ -128,6 +152,20 @@ export default function WorkflowDetail() {
         },
       ]
     );
+  };
+
+  const handleOpenEditModal = () => {
+    if (!workflow) return;
+    setEditedName(workflow.name);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editedName.trim()) {
+      Alert.alert(t.error, 'El nombre no puede estar vacío');
+      return;
+    }
+    updateMutation.mutate({ name: editedName.trim() });
   };
 
   if (workflowLoading) {
@@ -215,7 +253,9 @@ export default function WorkflowDetail() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {workflow.name}
         </Text>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={handleOpenEditModal} style={styles.backButton}>
+          <Ionicons name="create-outline" size={24} color={THEME.textPrimary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -693,6 +733,55 @@ export default function WorkflowDetail() {
           )}
         </View>
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t.editWorkflow}</Text>
+
+            <View style={styles.modalInputContainer}>
+              <Text style={styles.modalLabel}>{t.workflowName}</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editedName}
+                onChangeText={setEditedName}
+                placeholder={t.workflowNamePlaceholder}
+                placeholderTextColor={THEME.textSecondary}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.modalButtonTextCancel}>{t.cancel}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={handleSaveEdit}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonTextSave} numberOfLines={1}>
+                    {t.saveChanges}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1108,5 +1197,80 @@ const styles = StyleSheet.create({
   },
   timePillTextActive: {
     color: '#000',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: THEME.surface,
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInputContainer: {
+    marginBottom: 24,
+  },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.textPrimary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalInput: {
+    backgroundColor: THEME.surfaceHighlight,
+    borderRadius: 8,
+    padding: 16,
+    color: THEME.textPrimary,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  modalButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  modalButtonSave: {
+    backgroundColor: THEME.accent,
+  },
+  modalButtonTextCancel: {
+    color: THEME.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalButtonTextSave: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

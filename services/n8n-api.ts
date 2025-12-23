@@ -150,3 +150,36 @@ export async function getExecutions(
 export async function getExecution(id: string): Promise<N8nExecution> {
   return await apiRequest<N8nExecution>(`/executions/${id}?includeData=true`);
 }
+
+/**
+ * Update workflow (name, tags, etc.)
+ * Note: n8n API requires specific fields only
+ */
+export async function updateWorkflow(
+  id: string,
+  workflow: N8nWorkflow,
+  updates: { name?: string }
+): Promise<N8nWorkflow> {
+  // Send minimal required fields for update
+  const updatePayload: any = {
+    name: updates.name ?? workflow.name,
+    nodes: workflow.nodes ?? [],
+    connections: (workflow as any).connections ?? {},
+  };
+
+  // Only include optional fields if they exist
+  if ((workflow as any).settings) {
+    updatePayload.settings = {};
+  }
+  if ((workflow as any).staticData !== undefined) {
+    updatePayload.staticData = (workflow as any).staticData;
+  }
+  if (workflow.tags && workflow.tags.length > 0) {
+    updatePayload.tags = workflow.tags.map(tag => tag.id);
+  }
+
+  return await apiRequest<N8nWorkflow>(`/workflows/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updatePayload),
+  });
+}
