@@ -269,21 +269,28 @@ export default function WorkflowDetail() {
             {/* Action Buttons */}
             <View style={styles.actionRow}>
                 <View style={styles.actionButtonContainer}>
-                    <TouchableOpacity 
-                        style={[styles.playButton, !workflow.active && styles.playButtonInactive]}
+                    <TouchableOpacity
+                        style={[
+                            styles.playButton,
+                            !workflow.active && styles.playButtonInactive,
+                            (workflow.nodes?.length || 0) === 0 && styles.playButtonDisabled
+                        ]}
                         onPress={handleToggleActive}
-                        disabled={toggleMutation.isPending}
+                        disabled={toggleMutation.isPending || (workflow.nodes?.length || 0) === 0}
                     >
                         {toggleMutation.isPending ? (
                             <ActivityIndicator color={workflow.active ? "#000" : "#FFF"} />
                         ) : (
-                            <Ionicons 
-                                name={workflow.active ? "pause" : "play"} 
-                                size={32} 
-                                color={workflow.active ? "#000" : "#000"} 
+                            <Ionicons
+                                name={workflow.active ? "pause" : "play"}
+                                size={32}
+                                color={(workflow.nodes?.length || 0) === 0 ? THEME.textSecondary : "#000"}
                             />
                         )}
                     </TouchableOpacity>
+                    {(workflow.nodes?.length || 0) === 0 && (
+                        <Text style={styles.disabledText}>El workflow necesita al menos un nodo</Text>
+                    )}
                 </View>
             </View>
             {/* Simple Stats Row */}
@@ -296,6 +303,11 @@ export default function WorkflowDetail() {
                <View style={styles.statItem}>
                    <Text style={[styles.statValue, { color: THEME.error }]}>{errorCount}</Text>
                    <Text style={styles.statLabel}>Errores</Text>
+               </View>
+               <View style={styles.statDivider} />
+               <View style={styles.statItem}>
+                   <Text style={[styles.statValue, { color: THEME.textPrimary }]}>{workflow.nodes?.length || 0}</Text>
+                   <Text style={styles.statLabel}>Nodos</Text>
                </View>
             </View>
         </View>
@@ -556,7 +568,7 @@ const styles = StyleSheet.create({
       borderRadius: 4,
   },
   tagActive: {
-      backgroundColor: THEME.accent,
+      backgroundColor: THEME.success,
   },
   tagInactive: {
       backgroundColor: THEME.surfaceHighlight,
@@ -596,7 +608,7 @@ const styles = StyleSheet.create({
       marginBottom: 8,
   },
   actionButtonContainer: {
-      // Container for the big play button
+      alignItems: 'center',
   },
   playButton: {
       width: 64,
@@ -609,6 +621,16 @@ const styles = StyleSheet.create({
   playButtonInactive: {
       backgroundColor: '#FFFFFF', // White when inactive (play action)? Or maybe Grey? Spotify uses Green always for the main action usually.
       // Left as green for consistency, but maybe White for "Start".
+  },
+  playButtonDisabled: {
+      backgroundColor: THEME.surfaceHighlight,
+      opacity: 0.5,
+  },
+  disabledText: {
+      color: THEME.textSecondary,
+      fontSize: 12,
+      textAlign: 'center',
+      marginTop: 8,
   },
   statsContainer: {
       flexDirection: 'row',
