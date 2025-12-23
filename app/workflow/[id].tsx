@@ -320,115 +320,188 @@ export default function WorkflowDetail() {
             <ActivityIndicator size="small" color={THEME.accent} style={{ marginTop: 20 }} />
           ) : executions && executions.length > 0 ? (
             <>
-              {/* Status Filter Chips */}
-              <View style={styles.filterContainer}>
-                <TouchableOpacity 
-                  style={[styles.filterChip, statusFilter === 'all' && styles.filterChipActive]}
-                  onPress={() => {
-                    setStatusFilter('all');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Text style={[styles.filterChipText, statusFilter === 'all' && styles.filterChipTextActive]}>
-                    Todos ({executions?.length || 0})
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterChip, statusFilter === 'success' && styles.filterChipActive]}
-                  onPress={() => {
-                    setStatusFilter('success');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="checkmark-circle" size={16} color={statusFilter === 'success' ? '#000' : THEME.success} />
-                  <Text style={[styles.filterChipText, statusFilter === 'success' && styles.filterChipTextActive]}>
-                    Exitosas ({successCount})
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterChip, statusFilter === 'error' && styles.filterChipActive]}
-                  onPress={() => {
-                    setStatusFilter('error');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="close-circle" size={16} color={statusFilter === 'error' ? '#000' : THEME.error} />
-                  <Text style={[styles.filterChipText, statusFilter === 'error' && styles.filterChipTextActive]}>
-                    Errores ({errorCount})
-                  </Text>
-                </TouchableOpacity>
-                
-                {runningCount > 0 && (
-                  <TouchableOpacity 
-                    style={[styles.filterChip, statusFilter === 'running' && styles.filterChipActive]}
-                    onPress={() => {
-                      setStatusFilter('running');
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <Ionicons name="time-outline" size={16} color={statusFilter === 'running' ? '#000' : THEME.textSecondary} />
-                    <Text style={[styles.filterChipText, statusFilter === 'running' && styles.filterChipTextActive]}>
-                      En curso ({runningCount})
+              {/* Filter Section with Header */}
+              <View style={styles.filterSection}>
+                {/* Filter Header with Results Counter */}
+                <View style={styles.filterHeader}>
+                  <View style={styles.filterTitleRow}>
+                    <Ionicons name="filter" size={18} color={THEME.accent} />
+                    <Text style={styles.filterTitle}>Filtros</Text>
+                  </View>
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>
+                      {filteredExecutions.length} resultado{filteredExecutions.length !== 1 ? 's' : ''}
                     </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              {/* Time Filter Chips */}
-              <View style={styles.filterContainer}>
-                <TouchableOpacity 
-                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === 'all' && styles.filterChipActive]}
-                  onPress={() => {
-                    setTimeFilter('all');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="calendar-outline" size={16} color={timeFilter === 'all' ? '#000' : THEME.textSecondary} />
-                  <Text style={[styles.filterChipText, timeFilter === 'all' && styles.filterChipTextActive]}>
-                    Todo
+                  </View>
+                </View>
+
+                {/* Status Filter - Segmented Control Style */}
+                <View style={styles.filterGroupContainer}>
+                  <Text style={styles.filterGroupLabel}>
+                    <Ionicons name="pulse-outline" size={14} color={THEME.textSecondary} /> Estado
                   </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '24h' && styles.filterChipActive]}
-                  onPress={() => {
-                    setTimeFilter('24h');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="time-outline" size={16} color={timeFilter === '24h' ? '#000' : THEME.textSecondary} />
-                  <Text style={[styles.filterChipText, timeFilter === '24h' && styles.filterChipTextActive]}>
-                    24h
+                  <View style={styles.segmentedControl}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.segmentedButton, 
+                        styles.segmentedButtonFirst,
+                        statusFilter === 'all' && styles.segmentedButtonActive
+                      ]}
+                      onPress={() => {
+                        setStatusFilter('all');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Text style={[styles.segmentedButtonText, statusFilter === 'all' && styles.segmentedButtonTextActive]}>
+                        Todos
+                      </Text>
+                      <View style={[styles.segmentedBadge, statusFilter === 'all' && styles.segmentedBadgeActive]}>
+                        <Text style={[styles.segmentedBadgeText, statusFilter === 'all' && styles.segmentedBadgeTextActive]}>
+                          {executions?.length || 0}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[
+                        styles.segmentedButton,
+                        statusFilter === 'success' && styles.segmentedButtonSuccess
+                      ]}
+                      onPress={() => {
+                        setStatusFilter('success');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Ionicons 
+                        name="checkmark-circle" 
+                        size={14} 
+                        color={statusFilter === 'success' ? '#FFF' : THEME.success} 
+                      />
+                      <Text style={[styles.segmentedButtonText, statusFilter === 'success' && styles.segmentedButtonTextActive]}>
+                        Éxito
+                      </Text>
+                      <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'success' ? 'rgba(255,255,255,0.2)' : 'rgba(34,197,94,0.2)' }]}>
+                        <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'success' ? '#FFF' : THEME.success }]}>
+                          {successCount}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[
+                        styles.segmentedButton,
+                        statusFilter === 'error' && styles.segmentedButtonError
+                      ]}
+                      onPress={() => {
+                        setStatusFilter('error');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Ionicons 
+                        name="close-circle" 
+                        size={14} 
+                        color={statusFilter === 'error' ? '#FFF' : THEME.error} 
+                      />
+                      <Text style={[styles.segmentedButtonText, statusFilter === 'error' && styles.segmentedButtonTextActive]}>
+                        Error
+                      </Text>
+                      <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'error' ? 'rgba(255,255,255,0.2)' : 'rgba(255,82,82,0.2)' }]}>
+                        <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'error' ? '#FFF' : THEME.error }]}>
+                          {errorCount}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                    
+                    {runningCount > 0 && (
+                      <TouchableOpacity 
+                        style={[
+                          styles.segmentedButton,
+                          styles.segmentedButtonLast,
+                          statusFilter === 'running' && styles.segmentedButtonRunning
+                        ]}
+                        onPress={() => {
+                          setStatusFilter('running');
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <Ionicons 
+                          name="hourglass-outline" 
+                          size={14} 
+                          color={statusFilter === 'running' ? '#FFF' : '#FFA500'} 
+                        />
+                        <Text style={[styles.segmentedButtonText, statusFilter === 'running' && styles.segmentedButtonTextActive]}>
+                          Activo
+                        </Text>
+                        <View style={[styles.segmentedBadge, { backgroundColor: statusFilter === 'running' ? 'rgba(255,255,255,0.2)' : 'rgba(255,165,0,0.2)' }]}>
+                          <Text style={[styles.segmentedBadgeText, { color: statusFilter === 'running' ? '#FFF' : '#FFA500' }]}>
+                            {runningCount}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
+                {/* Time Filter - Pill Style */}
+                <View style={styles.filterGroupContainer}>
+                  <Text style={styles.filterGroupLabel}>
+                    <Ionicons name="time-outline" size={14} color={THEME.textSecondary} /> Período
                   </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '7d' && styles.filterChipActive]}
-                  onPress={() => {
-                    setTimeFilter('7d');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="calendar-outline" size={16} color={timeFilter === '7d' ? '#000' : THEME.textSecondary} />
-                  <Text style={[styles.filterChipText, timeFilter === '7d' && styles.filterChipTextActive]}>
-                    7 días
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.filterChip, styles.timeFilterChip, timeFilter === '30d' && styles.filterChipActive]}
-                  onPress={() => {
-                    setTimeFilter('30d');
-                    setCurrentPage(1);
-                  }}
-                >
-                  <Ionicons name="calendar-outline" size={16} color={timeFilter === '30d' ? '#000' : THEME.textSecondary} />
-                  <Text style={[styles.filterChipText, timeFilter === '30d' && styles.filterChipTextActive]}>
-                    30 días
-                  </Text>
-                </TouchableOpacity>
+                  <View style={styles.timeFilterRow}>
+                    <TouchableOpacity 
+                      style={[styles.timePill, timeFilter === 'all' && styles.timePillActive]}
+                      onPress={() => {
+                        setTimeFilter('all');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Ionicons 
+                        name="infinite-outline" 
+                        size={16} 
+                        color={timeFilter === 'all' ? '#000' : THEME.textSecondary} 
+                      />
+                      <Text style={[styles.timePillText, timeFilter === 'all' && styles.timePillTextActive]}>
+                        Todo
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.timePill, timeFilter === '24h' && styles.timePillActive]}
+                      onPress={() => {
+                        setTimeFilter('24h');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Text style={[styles.timePillText, timeFilter === '24h' && styles.timePillTextActive]}>
+                        24h
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.timePill, timeFilter === '7d' && styles.timePillActive]}
+                      onPress={() => {
+                        setTimeFilter('7d');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Text style={[styles.timePillText, timeFilter === '7d' && styles.timePillTextActive]}>
+                        7 días
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.timePill, timeFilter === '30d' && styles.timePillActive]}
+                      onPress={() => {
+                        setTimeFilter('30d');
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <Text style={[styles.timePillText, timeFilter === '30d' && styles.timePillTextActive]}>
+                        30 días
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
 
               {filteredExecutions.length > 0 ? (
@@ -752,38 +825,149 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  filterContainer: {
+  // New Filter Styles
+  filterSection: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  filterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterTitle: {
+    color: THEME.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  filterBadge: {
+    backgroundColor: 'rgba(234, 75, 113, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  filterBadgeText: {
+    color: THEME.accent,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  filterGroupContainer: {
+    marginBottom: 16,
+  },
+  filterGroupLabel: {
+    color: THEME.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 10,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  segmentedButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 0, // Default to no radius for middle items
+  },
+  segmentedButtonFirst: {
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  segmentedButtonLast: {
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  segmentedButtonActive: {
+    backgroundColor: THEME.surfaceHighlight,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  segmentedButtonSuccess: {
+    backgroundColor: THEME.success,
+  },
+  segmentedButtonError: {
+    backgroundColor: THEME.error,
+  },
+  segmentedButtonRunning: {
+    backgroundColor: '#FFA500',
+  },
+  segmentedButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: THEME.textSecondary,
+  },
+  segmentedButtonTextActive: {
+    color: '#FFF',
+  },
+  segmentedBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  segmentedBadgeActive: {
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  segmentedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.textSecondary,
+  },
+  segmentedBadgeTextActive: {
+    color: '#FFF',
+  },
+  timeFilterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 12,
-    marginBottom: 16,
   },
-  filterChip: {
+  timePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  filterChipActive: {
-    backgroundColor: THEME.accent,
-    borderColor: THEME.accent,
+  timePillActive: {
+    backgroundColor: THEME.textPrimary,
+    borderColor: THEME.textPrimary,
   },
-  filterChipText: {
-    fontSize: 13,
+  timePillText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: THEME.textPrimary,
+    color: THEME.textSecondary,
   },
-  filterChipTextActive: {
+  timePillTextActive: {
     color: '#000',
-  },
-  timeFilterChip: {
-    backgroundColor: 'rgba(100, 150, 255, 0.1)',
-    borderColor: 'rgba(100, 150, 255, 0.2)',
   },
 });
