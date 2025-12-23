@@ -243,7 +243,7 @@ export default function WorkflowDetail() {
         {/* Hero Section */}
         <View style={styles.heroSection}>
             <View style={styles.artworkPlaceholder}>
-                <Ionicons name="git-network-outline" size={64} color="#FFF" />
+                <Ionicons name="git-network-outline" size={48} color="#FFF" />
             </View>
             <Text style={styles.workflowName}>{workflow.name}</Text>
             <View style={styles.metaRow}>
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 400,
+    height: 280,
   },
   headerToolbar: {
     flexDirection: 'row',
@@ -522,8 +522,8 @@ const styles = StyleSheet.create({
       marginBottom: 32,
   },
   artworkPlaceholder: {
-      width: 180,
-      height: 180,
+      width: 120,
+      height: 120,
       backgroundColor: 'rgba(255,255,255,0.1)',
       justifyContent: 'center',
       alignItems: 'center',
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.58,
       shadowRadius: 16.00,
       elevation: 24,
-      marginBottom: 24,
+      marginBottom: 20,
   },
   workflowName: {
     fontSize: 24,
