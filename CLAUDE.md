@@ -176,3 +176,175 @@ To implement the n8n monitoring features, you may need to install:
 - `date-fns` or `dayjs` - Date formatting for execution timestamps
 
 **IMPORTANT:** Before implementing with any of these libraries, use Context7 to get current documentation and best practices. Query the library name first with `resolve-library-id`, then fetch docs with `get-library-docs`.
+
+## Current Implementation Details
+
+### Internationalization (i18n)
+The app supports **Spanish and English** via a custom language context:
+- **Context**: `context/LanguageContext.tsx` - Provides language switching functionality
+- **Translations**: `services/i18n/strings.ts` - Contains all translations for both languages
+- **Usage**: Use `const { t, language, setLanguage } = useLanguage()` hook in components
+- **Storage**: Selected language is persisted in `expo-secure-store`
+
+**Adding new translations:**
+1. Add the key and Spanish text to `translations.es` in `strings.ts`
+2. Add the same key with English text to `translations.en`
+3. Use in components via `{t.yourKey}`
+
+### Implemented Features
+
+#### 1. Workflow List Screen (`app/index.tsx`)
+- **Stats Dashboard**: Shows total, active, and inactive workflow counts
+- **Search Bar**: Filter workflows by name with real-time search
+- **Filter Chips**: Filter by all/active/inactive status
+- **Workflow Cards**: Display workflow status, last update time, and activity indicators
+- **Floating Menu**: Bottom navigation with:
+  - Home icon (pink when active, gray otherwise - NO background color)
+  - Refresh button (always gray)
+  - Add server button (always gray)
+  - Settings button (always gray)
+- **Pull to Refresh**: Swipe down to refresh workflow list
+- **Greeting**: Time-based greeting (Buenos días/Buenas tardes/Buenas noches)
+
+#### 2. Workflow Detail Screen (`app/workflow/[id].tsx`)
+**Header:**
+- Dynamic gradient background (changes color based on active status)
+- Back button with proper navigation
+- Workflow name in header
+
+**Hero Section:**
+- Large workflow icon/artwork placeholder
+- Workflow name
+- Status tag: "ACTIVO" (green background) or "PAUSADO" (gray background)
+- Last updated timestamp
+- Workflow tags (if any)
+
+**Action Buttons:**
+- **Play/Pause button**:
+  - Green background when active (shows pause icon)
+  - White background when inactive (shows play icon)
+  - **Disabled when workflow has 0 nodes** with validation message: "El workflow necesita al menos un nodo"
+  - Centered alignment
+  - Confirmation dialog before toggling state
+
+**Statistics Section:**
+- **Three stat cards:**
+  1. Successful executions (green text)
+  2. Failed executions (red text)
+  3. **Node count** (white text) - Shows total number of nodes in the workflow
+
+**Execution History:**
+- **Advanced Filter System:**
+  - **Status Filter**: Segmented control with badges showing counts
+    - All executions
+    - Successful (green when selected)
+    - Error (red when selected)
+    - Running (orange when selected, only shown if there are running executions)
+  - **Time Filter**: Pill-style buttons
+    - All time
+    - Last 24 hours
+    - Last 7 days
+    - Last 30 days
+  - **Results Counter**: Shows filtered results count
+- **Execution List**: Shows status icon, title, date, and duration
+- **Pagination**: 10 items per page with prev/next controls
+- **Pull to Refresh**: Update workflow and execution data
+- **Empty States**: Different messages for no executions vs no filtered results
+
+#### 3. Server Configuration (`app/setup.tsx`)
+- **Multi-server support**: Manage multiple n8n instances
+- **Server List**: Shows all configured servers with active/inactive status
+- **Search Bar**: Filter servers by name or URL
+- **Server Cards**: Display name, URL, status badge, and action buttons
+- **Add/Edit Form**:
+  - Server name input
+  - Server URL input (auto-cleans trailing slashes and /api paths)
+  - API Key input (secure entry)
+  - **API Key Help**: Information box explaining how to create an API key:
+    - Spanish: "Para crear un API Key: Configuración → API → Crear API Key en tu instancia de n8n"
+    - English: "To create an API Key: Settings → API → Create API Key in your n8n instance"
+  - Test Connection button (validates credentials)
+  - Save button
+- **Active Server**: Visual indicator for currently connected server
+- **Delete Server**: Confirmation dialog before deletion
+
+#### 4. Onboarding Flow (`app/onboarding.tsx`)
+- Multi-step introduction for first-time users
+- Explains app features and setup process
+- Can be accessed again via settings
+
+### Design System
+
+**Color Palette:**
+```typescript
+const THEME = {
+  background: '#121212',      // Main background
+  surface: '#181818',         // Card backgrounds
+  surfaceHighlight: '#282828', // Elevated surfaces
+  textPrimary: '#FFFFFF',     // Primary text
+  textSecondary: '#B3B3B3',   // Secondary text
+  accent: '#EA4B71',          // n8n Primary Pink
+  success: '#22c55e',         // Green for success/active
+  error: '#FF5252',           // Red for errors
+};
+```
+
+**UI Patterns:**
+- **Spotify-inspired design**: Dark theme with vibrant accents
+- **Gradient headers**: Dynamic colors based on content state
+- **Blur effects**: Using `expo-blur` for floating menus
+- **Animated transitions**: React Native Reanimated for smooth animations
+- **Glass morphism**: Translucent surfaces with blur
+
+### Validation Rules
+
+1. **Workflow Activation**:
+   - Workflows with 0 nodes cannot be activated
+   - Button is visually disabled (gray, opacity 0.5)
+   - Help text shown: "El workflow necesita al menos un nodo"
+
+2. **Server Configuration**:
+   - All fields required (name, URL, API key)
+   - URL must start with http:// or https://
+   - URL is auto-cleaned (removes trailing slashes, /api/v1, /workflow paths)
+   - Test connection validates credentials before saving
+
+### State Management
+- **TanStack Query (React Query)** for server state and caching
+- **Local state** with React hooks for UI state
+- **Expo Secure Store** for sensitive data (API keys, active server)
+- **AsyncStorage** for non-sensitive preferences (language, onboarding status)
+
+### Error Handling
+- Network errors show user-friendly messages
+- Retry buttons on failed data fetches
+- Loading states for all async operations
+- Empty states for lists with no data
+- Validation messages for form inputs
+
+### Performance Optimizations
+- Query caching with 5-minute stale time
+- Automatic retry (2 attempts) for failed queries
+- Pull-to-refresh with visual feedback
+- Pagination for long execution lists (10 items per page)
+- Virtualized lists with FlatList
+- Animated list items with staggered delays
+
+### Known Limitations
+- **Background notifications**: Requires development build (not available in Expo Go)
+  - If implementing notifications in the future, users must create a development build with `npx expo run:ios` or `npx expo run:android`
+- **Workflow editing**: Currently view-only, no node editing capabilities
+- **Execution details**: Limited to list view, no detailed node-by-node execution data yet
+
+### Future Enhancement Ideas
+Potential features to implement (not yet developed):
+1. Execute workflow manually from app
+2. View detailed execution logs and node data
+3. Dashboard with charts/graphs
+4. Favorite workflows
+5. Advanced sorting and filtering
+6. Duplicate/export workflows
+7. Offline mode with data caching
+8. Home screen widgets
+9. Light/dark theme toggle
+10. Basic workflow editing (name, description, tags)

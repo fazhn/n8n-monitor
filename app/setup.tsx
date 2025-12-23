@@ -488,6 +488,10 @@ export default function SetupScreen() {
               secureTextEntry
               editable={!loading}
             />
+            <View style={styles.helpContainer}>
+              <Ionicons name="information-circle-outline" size={16} color={THEME.textSecondary} />
+              <Text style={styles.helpText}>{t.apiKeyHelp}</Text>
+            </View>
           </View>
 
           <View style={styles.actionsContainer}>
@@ -763,6 +767,22 @@ const styles = StyleSheet.create({
     padding: 16,
     color: THEME.textPrimary,
     fontSize: 16,
+  },
+  helpContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(234, 75, 113, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: THEME.accent,
+  },
+  helpText: {
+    flex: 1,
+    color: THEME.textSecondary,
+    fontSize: 12,
+    lineHeight: 18,
   },
   actionsContainer: {
     gap: 16,
