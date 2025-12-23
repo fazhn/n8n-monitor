@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 30,
+    paddingTop: 40,
     paddingHorizontal: 16,
     paddingBottom: 10,
     zIndex: 10,
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    paddingTop: 5,
+    paddingTop: 10,
     paddingHorizontal: 24,
     marginBottom: 32,
   },

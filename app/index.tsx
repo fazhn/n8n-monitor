@@ -338,11 +338,11 @@ export default function Index() {
               onPress={() => setFilter('all')}
               activeOpacity={0.7}
             >
-              <View style={[styles.menuIconContainer, filter === 'all' && styles.menuIconActive]}>
+              <View style={styles.menuIconContainer}>
                 <Ionicons
                   name={filter === 'all' ? 'home' : 'home-outline'}
                   size={22}
-                  color={filter === 'all' ? '#000' : '#FFF'}
+                  color={filter === 'all' ? THEME.accent : THEME.textSecondary}
                 />
               </View>
             </TouchableOpacity>
@@ -350,8 +350,8 @@ export default function Index() {
 
           <Animated.View entering={FadeInUp.delay(600)}>
             <TouchableOpacity style={styles.menuItem} onPress={() => refetch()} activeOpacity={0.7}>
-              <View style={[styles.menuIconContainer, isRefetching && styles.menuIconActive]}>
-                <Ionicons name="refresh" size={22} color={isRefetching ? '#000' : '#FFF'} />
+              <View style={styles.menuIconContainer}>
+                <Ionicons name="refresh" size={22} color={THEME.textSecondary} />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -363,7 +363,7 @@ export default function Index() {
               activeOpacity={0.7}
             >
               <View style={styles.menuIconContainer}>
-                <Ionicons name="add-circle-outline" size={22} color="#FFF" />
+                <Ionicons name="add-circle-outline" size={22} color={THEME.textSecondary} />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -375,7 +375,7 @@ export default function Index() {
               activeOpacity={0.7}
             >
               <View style={styles.menuIconContainer}>
-                <Ionicons name="server-outline" size={22} color="#FFF" />
+                <Ionicons name="settings-outline" size={22} color={THEME.textSecondary} />
               </View>
             </TouchableOpacity>
           </Animated.View>
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingTop: 30,
+    paddingTop: 60,
     paddingBottom: 16,
   },
   greeting: {
