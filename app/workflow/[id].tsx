@@ -7,7 +7,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   RefreshControl,
   ScrollView,
@@ -51,6 +50,18 @@ export default function WorkflowDetail() {
   const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'confirm';
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success',
+  });
   const ITEMS_PER_PAGE = 10;
 
   const {
@@ -113,9 +124,22 @@ export default function WorkflowDetail() {
       refetchWorkflow();
     },
     onError: error => {
-      Alert.alert('Error', error instanceof Error ? error.message : 'No se pudo cambiar el estado');
+      showAlert(t.error, error instanceof Error ? error.message : 'No se pudo cambiar el estado', 'error');
     },
   });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'confirm' = 'success',
+    onConfirm?: () => void
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, onConfirm });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
 
   const updateMutation = useMutation({
     mutationFn: (updates: { name?: string }) => {
@@ -127,30 +151,21 @@ export default function WorkflowDetail() {
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       refetchWorkflow();
       setEditModalVisible(false);
-      Alert.alert(t.save, t.workflowUpdated);
+      showAlert(t.save, t.workflowUpdated, 'success');
     },
     onError: error => {
-      Alert.alert(t.error, error instanceof Error ? error.message : 'No se pudo actualizar el workflow');
+      showAlert(t.error, error instanceof Error ? error.message : 'No se pudo actualizar el workflow', 'error');
     },
   });
 
   const handleToggleActive = () => {
     if (!workflow) return;
 
-    // Direct toggle without alert if activating? Or keep safety?
-    // Keep safety for critical actions but maybe make it smoother.
-    // For now keeping the alert but we could make a custom modal later.
-    Alert.alert(
+    showAlert(
       workflow.active ? 'Pausar flujo' : 'Activar flujo',
       `¿Quieres ${workflow.active ? 'pausar' : 'activar'} "${workflow.name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: workflow.active ? 'Pausar' : 'Activar',
-          style: workflow.active ? 'destructive' : 'default',
-          onPress: () => toggleMutation.mutate(workflow.active),
-        },
-      ]
+      'confirm',
+      () => toggleMutation.mutate(workflow.active)
     );
   };
 
@@ -162,7 +177,7 @@ export default function WorkflowDetail() {
 
   const handleSaveEdit = () => {
     if (!editedName.trim()) {
-      Alert.alert(t.error, 'El nombre no puede estar vacío');
+      showAlert(t.error, 'El nombre no puede estar vacío', 'error');
       return;
     }
     updateMutation.mutate({ name: editedName.trim() });
@@ -782,6 +797,81 @@ export default function WorkflowDetail() {
           </View>
         </View>
       </Modal>
+
+      {/* Custom Alert Modal */}
+      <Modal
+        visible={alertConfig.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={hideAlert}
+      >
+        <View style={styles.alertOverlay}>
+          <View style={[
+            styles.alertContent,
+            alertConfig.type === 'success' && styles.alertContentSuccess,
+            alertConfig.type === 'error' && styles.alertContentError,
+          ]}>
+            {/* Icon */}
+            <View style={[
+              styles.alertIcon,
+              alertConfig.type === 'success' && styles.alertIconSuccess,
+              alertConfig.type === 'error' && styles.alertIconError,
+              alertConfig.type === 'confirm' && styles.alertIconConfirm,
+            ]}>
+              <Ionicons
+                name={
+                  alertConfig.type === 'success' ? 'checkmark-circle' :
+                  alertConfig.type === 'error' ? 'close-circle' :
+                  'help-circle'
+                }
+                size={40}
+                color="#FFF"
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+
+            {/* Message */}
+            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+
+            {/* Buttons */}
+            <View style={styles.alertButtons}>
+              {alertConfig.type === 'confirm' ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.alertButtonCancel]}
+                    onPress={hideAlert}
+                  >
+                    <Text style={styles.alertButtonTextCancel}>{t.cancel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.alertButtonConfirm]}
+                    onPress={() => {
+                      hideAlert();
+                      alertConfig.onConfirm?.();
+                    }}
+                  >
+                    <Text style={styles.alertButtonTextConfirm}>Confirmar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.alertButton,
+                    styles.alertButtonSingle,
+                    alertConfig.type === 'success' && styles.alertButtonSuccess,
+                    alertConfig.type === 'error' && styles.alertButtonError,
+                  ]}
+                  onPress={hideAlert}
+                >
+                  <Text style={styles.alertButtonTextSingle}>OK</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1271,6 +1361,107 @@ const styles = StyleSheet.create({
   modalButtonTextSave: {
     color: '#FFFFFF',
     fontSize: 13,
+    fontWeight: '600',
+  },
+  // Custom Alert Styles
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  alertContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: THEME.surface,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  alertContentSuccess: {
+    borderColor: 'rgba(34,197,94,0.3)',
+  },
+  alertContentError: {
+    borderColor: 'rgba(255,82,82,0.3)',
+  },
+  alertIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertIconSuccess: {
+    backgroundColor: THEME.success,
+  },
+  alertIconError: {
+    backgroundColor: THEME.error,
+  },
+  alertIconConfirm: {
+    backgroundColor: THEME.accent,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: 15,
+    color: THEME.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  alertButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  alertButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  alertButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  alertButtonConfirm: {
+    backgroundColor: THEME.accent,
+  },
+  alertButtonSingle: {
+    flex: 1,
+  },
+  alertButtonSuccess: {
+    backgroundColor: THEME.success,
+  },
+  alertButtonError: {
+    backgroundColor: THEME.error,
+  },
+  alertButtonTextCancel: {
+    color: THEME.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  alertButtonTextConfirm: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  alertButtonTextSingle: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

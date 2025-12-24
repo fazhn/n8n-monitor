@@ -12,9 +12,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -62,6 +62,18 @@ export default function SetupScreen() {
   const [testing, setTesting] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'confirm';
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success',
+  });
 
   useEffect(() => {
     loadData();
@@ -101,6 +113,19 @@ export default function SetupScreen() {
       server.serverUrl.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'confirm' = 'success',
+    onConfirm?: () => void
+  ) => {
+    setAlertConfig({ visible: true, title, message, type, onConfirm });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig(prev => ({ ...prev, visible: false }));
+  };
+
   const handleAddNew = () => {
     resetForm();
     setViewMode('form');
@@ -117,25 +142,23 @@ export default function SetupScreen() {
   const handleActivate = async (id: string) => {
     await setActiveServerId(id);
     setActiveId(id);
-    Alert.alert(t.active, 'Has cambiado el servidor activo.'); // Simplify msg or add to i18n later
+    showAlert(t.active, 'Has cambiado el servidor activo.', 'success');
   };
 
   const handleDelete = async (id: string) => {
-    Alert.alert(t.deleteServerTitle, t.deleteServerConfirm, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.delete,
-        style: 'destructive',
-        onPress: async () => {
-          await removeServer(id);
-          if (editingId === id) {
-            resetForm();
-            setViewMode('list');
-          }
-          loadData();
-        },
-      },
-    ]);
+    showAlert(
+      t.deleteServerTitle,
+      t.deleteServerConfirm,
+      'confirm',
+      async () => {
+        await removeServer(id);
+        if (editingId === id) {
+          resetForm();
+          setViewMode('list');
+        }
+        loadData();
+      }
+    );
   };
 
   const resetForm = () => {
@@ -152,7 +175,7 @@ export default function SetupScreen() {
 
   const testConnection = async () => {
     if (!serverUrl.trim() || !apiKey.trim()) {
-      Alert.alert('Error', 'Por favor completa URL y API Key para probar');
+      showAlert('Error', 'Por favor completa URL y API Key para probar', 'error');
       return;
     }
 
@@ -168,7 +191,7 @@ export default function SetupScreen() {
         const url = new URL(testUrl);
         testUrl = `${url.protocol}//${url.host}`;
       } catch {
-        Alert.alert('URL Inválida', 'La URL no es válida');
+        showAlert('URL Inválida', 'La URL no es válida', 'error');
         setTesting(false);
         return;
       }
@@ -186,21 +209,24 @@ export default function SetupScreen() {
       if (response.ok) {
         const data = await response.json();
         const workflowCount = data.data?.length || data.length || 0;
-        Alert.alert(
-          '✅ Conexión exitosa',
-          `Se encontraron ${workflowCount} workflow(s).\n\nURL: ${testUrl}`
+        showAlert(
+          'Conexión exitosa',
+          `Se encontraron ${workflowCount} workflow(s).\n\nURL: ${testUrl}`,
+          'success'
         );
       } else {
         const errorText = await response.text();
-        Alert.alert(
-          '❌ Error de conexión',
-          `Status: ${response.status}\n${response.statusText}\n\n${errorText.substring(0, 200)}`
+        showAlert(
+          'Error de conexión',
+          `Status: ${response.status}\n${response.statusText}\n\n${errorText.substring(0, 200)}`,
+          'error'
         );
       }
     } catch (error) {
-      Alert.alert(
-        '❌ Error de red',
-        error instanceof Error ? error.message : 'No se pudo conectar al servidor'
+      showAlert(
+        'Error de red',
+        error instanceof Error ? error.message : 'No se pudo conectar al servidor',
+        'error'
       );
     } finally {
       setTesting(false);
@@ -209,13 +235,13 @@ export default function SetupScreen() {
 
   const handleSave = async () => {
     if (!serverUrl.trim() || !apiKey.trim() || !name.trim()) {
-      Alert.alert('Error', 'Por favor completa todos los campos (Nombre, URL, API Key)');
+      showAlert('Error', 'Por favor completa todos los campos (Nombre, URL, API Key)', 'error');
       return;
     }
 
     const urlPattern = /^https?:\/\/.+/i;
     if (!urlPattern.test(serverUrl.trim())) {
-      Alert.alert('URL Inválida', 'La URL debe comenzar con http:// o https://');
+      showAlert('URL Inválida', 'La URL debe comenzar con http:// o https://', 'error');
       return;
     }
 
@@ -231,7 +257,7 @@ export default function SetupScreen() {
         const url = new URL(cleanUrl);
         cleanUrl = `${url.protocol}//${url.host}`;
       } catch {
-        Alert.alert('URL Inválida', 'No se pudo procesar la URL.');
+        showAlert('URL Inválida', 'No se pudo procesar la URL.', 'error');
         setLoading(false);
         return;
       }
@@ -246,9 +272,9 @@ export default function SetupScreen() {
       await loadData();
       resetForm();
       setViewMode('list'); // Go back to list after saving
-      Alert.alert(t.save, t.serverSaved);
+      showAlert(t.save, t.serverSaved, 'success');
     } catch {
-      Alert.alert(t.error, 'No se pudo guardar la configuración');
+      showAlert(t.error, 'No se pudo guardar la configuración', 'error');
     } finally {
       setLoading(false);
     }
@@ -521,6 +547,81 @@ export default function SetupScreen() {
           </View>
         </ScrollView>
       )}
+
+      {/* Custom Alert Modal */}
+      <Modal
+        visible={alertConfig.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={hideAlert}
+      >
+        <View style={styles.alertOverlay}>
+          <View style={[
+            styles.alertContent,
+            alertConfig.type === 'success' && styles.alertContentSuccess,
+            alertConfig.type === 'error' && styles.alertContentError,
+          ]}>
+            {/* Icon */}
+            <View style={[
+              styles.alertIcon,
+              alertConfig.type === 'success' && styles.alertIconSuccess,
+              alertConfig.type === 'error' && styles.alertIconError,
+              alertConfig.type === 'confirm' && styles.alertIconConfirm,
+            ]}>
+              <Ionicons
+                name={
+                  alertConfig.type === 'success' ? 'checkmark-circle' :
+                  alertConfig.type === 'error' ? 'close-circle' :
+                  'help-circle'
+                }
+                size={40}
+                color="#FFF"
+              />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+
+            {/* Message */}
+            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+
+            {/* Buttons */}
+            <View style={styles.alertButtons}>
+              {alertConfig.type === 'confirm' ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.alertButtonCancel]}
+                    onPress={hideAlert}
+                  >
+                    <Text style={styles.alertButtonTextCancel}>{t.cancel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.alertButton, styles.alertButtonConfirm]}
+                    onPress={() => {
+                      hideAlert();
+                      alertConfig.onConfirm?.();
+                    }}
+                  >
+                    <Text style={styles.alertButtonTextConfirm}>Confirmar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.alertButton,
+                    styles.alertButtonSingle,
+                    alertConfig.type === 'success' && styles.alertButtonSuccess,
+                    alertConfig.type === 'error' && styles.alertButtonError,
+                  ]}
+                  onPress={hideAlert}
+                >
+                  <Text style={styles.alertButtonTextSingle}>OK</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -827,5 +928,106 @@ const styles = StyleSheet.create({
     color: THEME.textSecondary,
     textDecorationLine: 'underline',
     fontSize: 14,
+  },
+  // Custom Alert Styles
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  alertContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: THEME.surface,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  alertContentSuccess: {
+    borderColor: 'rgba(34,197,94,0.3)',
+  },
+  alertContentError: {
+    borderColor: 'rgba(255,82,82,0.3)',
+  },
+  alertIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  alertIconSuccess: {
+    backgroundColor: THEME.success,
+  },
+  alertIconError: {
+    backgroundColor: THEME.error,
+  },
+  alertIconConfirm: {
+    backgroundColor: THEME.accent,
+  },
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: THEME.textPrimary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: 15,
+    color: THEME.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  alertButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  alertButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  alertButtonCancel: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  alertButtonConfirm: {
+    backgroundColor: THEME.accent,
+  },
+  alertButtonSingle: {
+    flex: 1,
+  },
+  alertButtonSuccess: {
+    backgroundColor: THEME.success,
+  },
+  alertButtonError: {
+    backgroundColor: THEME.error,
+  },
+  alertButtonTextCancel: {
+    color: THEME.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  alertButtonTextConfirm: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  alertButtonTextSingle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
